@@ -6,6 +6,17 @@
 
 ---
 
+## 📸 Screenshots
+<div align="center">
+  <img src="frontend/public/docs/media__1772914592366.png" width="48%" alt="Live Packet Capture" />
+  <img src="frontend/public/docs/media__1772916260786.png" width="48%" alt="Session Management" />
+  <img src="frontend/public/docs/media__1772916260802.png" width="80%" alt="ML Risk Engine Dashboard" style="margin-top: 10px;" />
+</div>
+
+---
+
+---
+
 ## ⚡ Features
 
 - **Real-Time Capture:** Live packet streaming from network interfaces using WebSockets.
