@@ -9,12 +9,15 @@ block_cipher = None
 # Collect ALL of scapy (data files, binaries, hidden imports)
 datas_scapy, binaries_scapy, hiddenimports_scapy = collect_all('scapy')
 
+# Collect ALL of pywebview
+datas_webview, binaries_webview, hiddenimports_webview = collect_all('webview')
+
 a = Analysis(
     ['main.py'],
     pathex=['.'],
-    binaries=binaries_scapy,
-    datas=datas_scapy,
-    hiddenimports=hiddenimports_scapy + [
+    binaries=binaries_scapy + binaries_webview,
+    datas=datas_scapy + datas_webview,
+    hiddenimports=hiddenimports_scapy + hiddenimports_webview + [
         # Scapy capture-critical modules
         'scapy.sendrecv',
         'scapy.supersocket',
@@ -32,6 +35,24 @@ a = Analysis(
         'websockets.server',
         'websockets.legacy',
         'websockets.legacy.server',
+        # PyWebView and dependencies
+        'webview',
+        'webview.platforms',
+        'webview.platforms.winforms',
+        'webview.platforms.edgechromium',
+        'webview.platforms.cef',
+        'webview.window',
+        'webview.menu',
+        'webview.event',
+        'webview.localization',
+        'webview.http',
+        'clr_loader',
+        'bottle',
+        'proxy_tools',
+        'win32api',
+        'win32con',
+        'win32gui',
+        'pywintypes',
         # Stdlib
         'asyncio',
         'threading',
@@ -65,7 +86,8 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
+    icon='../assets/icon.ico',
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

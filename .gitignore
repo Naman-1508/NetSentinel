@@ -1,12 +1,13 @@
-# ─── Global & Dependencies ───────────────────────────────────────────────────
+# ─── Dependencies ──────────────────────────────────────────────────────────
 node_modules/
 package-lock.json
 
-# ─── Next.js Frontend ──────────────────────────────────────────────────────
+# ─── Next.js Frontend ─────────────────────────────────────────────────────
 frontend/.next/
 frontend/out/
 *.tsbuildinfo
 next-env.d.ts
+frontend/.env.local
 
 # ─── Python Backend ────────────────────────────────────────────────────────
 backend/__pycache__/
@@ -22,28 +23,27 @@ backend/env/
 *.egg
 MANIFEST
 
-# ─── Electron Builder & Installer ──────────────────────────────────────────
+# ─── Build Outputs & Installers ───────────────────────────────────────────
 dist/
 release/
 win-unpacked/
-*.ps1
-*.vbs
-installer.nsi.bak
+*.exe
+nsis_build.log
 
-# ─── Saved Packet Captures ─────────────────────────────────────────────────
+# ─── Saved Packet Captures ────────────────────────────────────────────────
 frontend/public/captures/
 backend/captures/
 *.pcap
 *.pcapng
 
-# ─── Environment Variables ─────────────────────────────────────────────────
+# ─── Environment Variables ────────────────────────────────────────────────
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# ─── IDEs, Editors & Logs ──────────────────────────────────────────────────
+# ─── IDEs, Editors & Logs ─────────────────────────────────────────────────
 .vscode/
 .idea/
 *.suo

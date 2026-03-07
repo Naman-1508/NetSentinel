@@ -1,136 +1,138 @@
-; PacketCapture NSIS Installer
-; After install, launches via a Task Scheduler task (no UAC on every open)
-
-Unicode True
-RequestExecutionLevel admin
-
-!define APP_NAME    "PacketCapture"
-!define APP_VER     "1.0.0"
-!define APP_EXE     "PacketCapture.exe"
-!define TASK_NAME   "PacketCaptureAdmin"
-!define INST_DIR    "$PROGRAMFILES64\${APP_NAME}"
-!define REG_KEY     "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
-!define MUI_ICON    "electron\icon.ico"
-!define MUI_UNICON  "electron\icon.ico"
-
-!define MUI_FINISHPAGE_RUN_FUNCTION "LaunchApp"
-!define MUI_FINISHPAGE_RUN_TEXT     "Launch PacketCapture now"
-
-Name    "${APP_NAME} ${APP_VER}"
-OutFile "dist\PacketCapture-Setup-${APP_VER}.exe"
-InstallDir "${INST_DIR}"
-InstallDirRegKey HKLM "${REG_KEY}" "InstallLocation"
+; ============================================================
+;  PacketCapture — Premium Production Installer Script
+;  Built with NSIS 3.x + MUI2
+; ============================================================
 
 !include "MUI2.nsh"
-!define MUI_ABORTWARNING
+!include "FileFunc.nsh"
+!include "LogicLib.nsh"
 
+; ─── App Metadata ─────────────────────────────────────────
+!define APP_NAME        "PacketCapture"
+!define APP_VERSION     "1.0.0"
+!define APP_PUBLISHER   "PacketCapture Labs"
+!define APP_URL         "https://github.com/Naman-1508/PacketCapture"
+!define APP_EXE         "PacketCapture.exe"
+!define UNINSTALLER     "Uninstall.exe"
+!define REG_UNINST_KEY  "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
+
+Name             "${APP_NAME} ${APP_VERSION}"
+OutFile          "PacketCapture-Setup-${APP_VERSION}.exe"
+InstallDir       "$PROGRAMFILES64\${APP_NAME}"
+InstallDirRegKey HKLM "${REG_UNINST_KEY}" "InstallLocation"
+RequestExecutionLevel admin
+SetCompressor    /SOLID lzma
+SetCompressorDictSize 32
+
+; ─── Branding ─────────────────────────────────────────────
+BrandingText     "${APP_NAME} ${APP_VERSION} — Real-Time Network Monitor"
+
+; ─── MUI Settings ─────────────────────────────────────────
+!define MUI_ABORTWARNING
+!define MUI_ICON                    "assets\icon.ico"
+!define MUI_UNICON                  "assets\icon.ico"
+!define MUI_FINISHPAGE_RUN          "$INSTDIR\${APP_EXE}"
+!define MUI_FINISHPAGE_RUN_TEXT     "Launch PacketCapture"
+!define MUI_FINISHPAGE_LINK         "Visit Project on GitHub"
+!define MUI_FINISHPAGE_LINK_LOCATION "${APP_URL}"
+
+; ─── Installer Pages ──────────────────────────────────────
 !insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_LICENSE       "LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
-!insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
+
+; ─── Uninstaller Pages ────────────────────────────────────
+!insertmacro MUI_UNPAGE_WELCOME
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
+!insertmacro MUI_UNPAGE_FINISH
+
 !insertmacro MUI_LANGUAGE "English"
 
-; LaunchApp: called from Finish page
-Function LaunchApp
-  ; Run via the scheduled task (already elevated, no UAC)
-  ExecShell "open" "schtasks.exe" '/run /tn "${TASK_NAME}"' SW_HIDE
-FunctionEnd
+; ─── Version Info ─────────────────────────────────────────
+VIProductVersion                    "1.0.0.0"
+VIAddVersionKey "ProductName"       "${APP_NAME}"
+VIAddVersionKey "ProductVersion"    "${APP_VERSION}"
+VIAddVersionKey "CompanyName"       "${APP_PUBLISHER}"
+VIAddVersionKey "FileDescription"   "PacketCapture Installer"
+VIAddVersionKey "FileVersion"       "${APP_VERSION}"
+VIAddVersionKey "LegalCopyright"    "© 2025 ${APP_PUBLISHER}"
 
-; ── Main section ──────────────────────────────────────────────────────────────
-Section "PacketCapture (required)" SecMain
-  SectionIn RO
+; ─── Install Section ──────────────────────────────────────
+Section "PacketCapture" SecMain
+  SectionIn RO   ; Required — cannot be deselected
+
+  ; Kill old process if running
+  nsExec::ExecToStack 'taskkill /F /IM "${APP_EXE}" /T'
 
   SetOutPath "$INSTDIR"
-  File "dist\win-unpacked\PacketCapture.exe"
-  File "dist\win-unpacked\chrome_100_percent.pak"
-  File "dist\win-unpacked\chrome_200_percent.pak"
-  File "dist\win-unpacked\d3dcompiler_47.dll"
-  File "dist\win-unpacked\ffmpeg.dll"
-  File "dist\win-unpacked\icudtl.dat"
-  File "dist\win-unpacked\libEGL.dll"
-  File "dist\win-unpacked\libGLESv2.dll"
-  File "dist\win-unpacked\resources.pak"
-  File "dist\win-unpacked\snapshot_blob.bin"
-  File "dist\win-unpacked\v8_context_snapshot.bin"
-  File "dist\win-unpacked\vk_swiftshader.dll"
-  File "dist\win-unpacked\vk_swiftshader_icd.json"
-  File "dist\win-unpacked\vulkan-1.dll"
 
-  SetOutPath "$INSTDIR\locales"
-  File "dist\win-unpacked\locales\*.*"
+  ; Main executable (Python/PyWebView backend bundled)
+  File "/oname=${APP_EXE}" "backend\dist\backend.exe"
 
-  SetOutPath "$INSTDIR\resources\app"
-  File "dist\win-unpacked\resources\app\package.json"
+  ; App icon
+  File "/oname=icon.ico" "assets\icon.ico"
 
-  SetOutPath "$INSTDIR\resources\app\electron"
-  File "dist\win-unpacked\resources\app\electron\main.js"
-  File "dist\win-unpacked\resources\app\electron\preload.js"
+  ; Frontend static files
+  SetOutPath "$INSTDIR\frontend\out"
+  File /r "frontend\out\*.*"
 
-  SetOutPath "$INSTDIR\resources\app\frontend\out"
-  File /r "dist\win-unpacked\resources\app\frontend\out\*"
-
-  SetOutPath "$INSTDIR\resources\backend"
-  File "dist\win-unpacked\resources\backend\backend.exe"
-
-  ; ── VBS launcher: silently calls schtasks /run (no window flash) ─────────────
-  ; NOTE: using double-quote NSIS strings so $INSTDIR and ${TASK_NAME} expand.
-  SetOutPath "$INSTDIR"
-  FileOpen  $0 "$INSTDIR\launch.vbs" w
-  FileWrite $0 "CreateObject($\"WScript.Shell$\").Run $\"schtasks /run /tn ${TASK_NAME}$\", 0, False"
-  FileClose $0
-
-  ; ── Register Task Scheduler task via PowerShell (handles spaces in path) ─────
-  ; Write PS1 to $INSTDIR, execute as admin (NSIS is elevated), then delete.
-  FileOpen  $1 "$INSTDIR\setup_task.ps1" w
-  FileWrite $1 "$$a = New-ScheduledTaskAction -Execute '$INSTDIR\${APP_EXE}'$\r$\n"
-  FileWrite $1 "$$p = New-ScheduledTaskPrincipal -GroupId 'BUILTIN\Administrators' -RunLevel Highest$\r$\n"
-  FileWrite $1 "Register-ScheduledTask -Force -TaskName '${TASK_NAME}' -Action $$a -Principal $$p$\r$\n"
-  FileClose $1
-  ExecWait "powershell.exe -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -File $\"$INSTDIR\setup_task.ps1$\""
-  Delete "$INSTDIR\setup_task.ps1"
-
-  ; ── Start Menu shortcuts (point to VBS, use PacketCapture.exe icon) ──────────
+  ; ── Start Menu Shortcut ───────────────────────────────
   CreateDirectory "$SMPROGRAMS\${APP_NAME}"
-  CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" \
-    "$SYSDIR\wscript.exe" "$\"$INSTDIR\launch.vbs$\"" \
-    "$INSTDIR\${APP_EXE}" 0
-  CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" \
-    "$INSTDIR\Uninstall.exe"
+  CreateShortcut  "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" \
+                  "$INSTDIR\${APP_EXE}" "" \
+                  "$INSTDIR\icon.ico" 0 SW_SHOWNORMAL "" \
+                  "Real-time Packet Capture & Network Monitor"
+  CreateShortcut  "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" \
+                  "$INSTDIR\${UNINSTALLER}"
 
-  WriteUninstaller "$INSTDIR\Uninstall.exe"
-  WriteRegStr   HKLM "${REG_KEY}" "DisplayName"     "${APP_NAME}"
-  WriteRegStr   HKLM "${REG_KEY}" "DisplayVersion"  "${APP_VER}"
-  WriteRegStr   HKLM "${REG_KEY}" "Publisher"       "PacketCapture"
-  WriteRegStr   HKLM "${REG_KEY}" "InstallLocation" "$INSTDIR"
-  WriteRegStr   HKLM "${REG_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
-  WriteRegStr   HKLM "${REG_KEY}" "DisplayIcon"     '"$INSTDIR\${APP_EXE}"'
-  WriteRegDWORD HKLM "${REG_KEY}" "NoModify"        1
-  WriteRegDWORD HKLM "${REG_KEY}" "NoRepair"        1
+  ; ── Desktop Shortcut ──────────────────────────────────
+  CreateShortcut  "$DESKTOP\${APP_NAME}.lnk" \
+                  "$INSTDIR\${APP_EXE}" "" \
+                  "$INSTDIR\icon.ico" 0 SW_SHOWNORMAL "" \
+                  "Real-time Packet Capture & Network Monitor"
+
+  ; ── Registry — Add/Remove Programs entry ──────────────
+  WriteRegStr   HKLM "${REG_UNINST_KEY}" "DisplayName"      "${APP_NAME}"
+  WriteRegStr   HKLM "${REG_UNINST_KEY}" "DisplayVersion"   "${APP_VERSION}"
+  WriteRegStr   HKLM "${REG_UNINST_KEY}" "Publisher"        "${APP_PUBLISHER}"
+  WriteRegStr   HKLM "${REG_UNINST_KEY}" "URLInfoAbout"     "${APP_URL}"
+  WriteRegStr   HKLM "${REG_UNINST_KEY}" "InstallLocation"  "$INSTDIR"
+  WriteRegStr   HKLM "${REG_UNINST_KEY}" "UninstallString"  '"$INSTDIR\${UNINSTALLER}"'
+  WriteRegStr   HKLM "${REG_UNINST_KEY}" "DisplayIcon"      "$INSTDIR\icon.ico"
+  WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoModify"         1
+  WriteRegDWORD HKLM "${REG_UNINST_KEY}" "NoRepair"         1
+
+  ; Compute and write install size
+  ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
+  IntFmt $0 "0x%08X" $0
+  WriteRegDWORD HKLM "${REG_UNINST_KEY}" "EstimatedSize" "$0"
+
+  ; Write uninstaller
+  WriteUninstaller "$INSTDIR\${UNINSTALLER}"
+
 SectionEnd
 
-; ── Desktop shortcut (optional) ───────────────────────────────────────────────
-Section "Desktop Shortcut" SecDesktop
-  CreateShortCut "$DESKTOP\${APP_NAME}.lnk" \
-    "$SYSDIR\wscript.exe" "$\"$INSTDIR\launch.vbs$\"" \
-    "$INSTDIR\${APP_EXE}" 0
-SectionEnd
-
-LangString DESC_SecMain    ${LANG_ENGLISH} "Core application files (required)"
-LangString DESC_SecDesktop ${LANG_ENGLISH} "Add a shortcut on your Desktop"
-
-!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecMain}    $(DESC_SecMain)
-  !insertmacro MUI_DESCRIPTION_TEXT ${SecDesktop} $(DESC_SecDesktop)
-!insertmacro MUI_FUNCTION_DESCRIPTION_END
-
-; ── Uninstall ─────────────────────────────────────────────────────────────────
+; ─── Uninstall Section ────────────────────────────────────
 Section "Uninstall"
-  nsExec::ExecToLog 'schtasks /delete /tn "${TASK_NAME}" /f'
-  Delete   "$DESKTOP\${APP_NAME}.lnk"
-  RMDir /r "$SMPROGRAMS\${APP_NAME}"
-  RMDir /r "$INSTDIR"
-  DeleteRegKey HKLM "${REG_KEY}"
+  ; Kill process if running
+  nsExec::ExecToStack 'taskkill /F /IM "${APP_EXE}" /T'
+
+  ; Remove shortcuts
+  Delete "$DESKTOP\${APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk"
+  RMDir  "$SMPROGRAMS\${APP_NAME}"
+
+  ; Remove files
+  Delete "$INSTDIR\${APP_EXE}"
+  Delete "$INSTDIR\${UNINSTALLER}"
+  RMDir /r "$INSTDIR\frontend"
+  RMDir  "$INSTDIR"
+
+  ; Remove registry entry
+  DeleteRegKey HKLM "${REG_UNINST_KEY}"
+
 SectionEnd

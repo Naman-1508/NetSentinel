@@ -2,38 +2,13 @@
     "name": "packet-capture",
     "version": "1.0.0",
     "description": "Wireshark-inspired real-time packet capture desktop app",
-    "main": "electron/main.js",
     "scripts": {
-        "dev": "electron .",
+        "dev": "node start-dev.js",
         "build:next": "cd frontend && npm run build",
         "build:backend": "cd backend && pyinstaller backend.spec --distpath dist --workpath build --noconfirm",
-        "build:all": "npm run build:backend && npm run build:next",
-        "dist:dir": "npm run build:all && electron-builder --win --dir"
+        "build:all": "npm run build:backend && npm run build:next"
     },
-    "devDependencies": {
-        "@electron/packager": "^19.0.5",
-        "electron": "^33.4.0",
-        "electron-builder": "^24.13.3"
-    },
-    "build": {
-        "appId": "com.packetcapture.app",
-        "productName": "PacketCapture",
-        "asar": false,
-        "directories": {
-            "output": "dist"
-        },
-        "files": [
-            "electron/**/*",
-            "frontend/out/**/*"
-        ],
-        "extraResources": [
-            {
-                "from": "backend/dist/backend.exe",
-                "to": "backend/backend.exe"
-            }
-        ],
-        "win": {
-            "signAndEditExecutable": false
-        }
+    "dependencies": {
+        "ws": "^8.19.0"
     }
 }

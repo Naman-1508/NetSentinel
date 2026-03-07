@@ -1,0 +1,198 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* ── Surface System ── */
+  --bg-app:        #0c0f1a;    /* Deep navy-black */
+  --surface-1:     #111827;    /* Primary panels */
+  --surface-2:     #1a2236;    /* Nested elements */
+  --surface-3:     #1f2a41;    /* Hover/active */
+  --surface-hover: #1e2840;
+
+  /* ── Borders ── */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.11);
+
+  /* ── Text Hierarchy ── */
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-tertiary:  #64748b;
+  --text-muted:     #3d4f6a;
+
+  /* ── Accent — Cyber Indigo ── */
+  --accent-primary: #5b6ef5;
+  --accent-light:   #818cf8;
+  --accent-dim:     rgba(91, 110, 245, 0.14);
+
+  /* ── Cybersecurity Semantic Colors ── */
+  --success:  #10d982;   /* Bright cyber-green */
+  --warning:  #f59e0b;   /* Amber alert */
+  --danger:   #f43f5e;   /* Hot-pink red for alerts */
+  --info:     #38bdf8;   /* Sky-blue info */
+
+  /* ── Protocol Badge Colors ── */
+  --proto-tcp:    #6366f1;
+  --proto-udp:    #f59e0b;
+  --proto-arp:    #10d982;
+  --proto-dns:    #a78bfa;
+  --proto-tls:    #f43f5e;
+  --proto-icmp:   #ec4899;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Typography ───────────────────────── */
+.font-display {
+  font-family: "Outfit", "Inter", system-ui, sans-serif;
+}
+
+.font-mono-data {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 11.5px;
+  letter-spacing: -0.2px;
+}
+
+/* ── Cyber scan-line subtle overlay ─────*/
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Surface Cards ────────────────────── */
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+
+.card-inset {
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+}
+
+/* ── Pill Badge ───────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+/* ── Buttons ──────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: none;
+  outline: none;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 0 16px rgba(91, 110, 245, 0.25);
+}
+.btn-primary:hover:not(:disabled) { 
+  background: #4f63e8; 
+  box-shadow: 0 0 24px rgba(91, 110, 245, 0.4);
+}
+.btn-primary:disabled { 
+  background: var(--surface-2); 
+  color: var(--text-muted); 
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.25);
+}
+.btn-danger:hover:not(:disabled) { 
+  background: #e11d48;
+  box-shadow: 0 0 24px rgba(244, 63, 94, 0.4); 
+}
+.btn-danger:disabled { 
+  background: var(--surface-2); 
+  color: var(--text-muted); 
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+.btn-ghost:hover { 
+  background: var(--surface-2); 
+  color: var(--text-primary); 
+  border-color: var(--border-medium);
+}
+
+/* ── Cyber Glow Accents ───────────────── */
+.glow-success { box-shadow: 0 0 12px rgba(16, 217, 130, 0.3); }
+.glow-danger  { box-shadow: 0 0 12px rgba(244, 63, 94, 0.3); }
+.glow-accent  { box-shadow: 0 0 12px rgba(91, 110, 245, 0.3); }
+
+/* ── Scrollbars ───────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Selection ────────────────────────── */
+::selection {
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+/* ── Fade-in animation ────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.18s ease-out; }
+
+/* ── Pulse dot ────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.animate-pulse-dot { animation: pulse-dot 1.8s ease-in-out infinite; }

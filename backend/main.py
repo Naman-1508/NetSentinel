@@ -27,9 +27,12 @@ import logging
 import threading
 import time
 import argparse
+import sys
+import os
 from collections import defaultdict, deque
 from typing import Set, Dict, Any, List
 
+import webview
 import websockets
 from websockets.server import WebSocketServerProtocol
 
@@ -287,10 +290,43 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Packet Capture WebSocket Server")
     parser.add_argument("--host", default="localhost", help="Bind host (default: localhost)")
     parser.add_argument("--port", type=int, default=8765, help="Bind port (default: 8765)")
+    parser.add_argument("--dev", action="store_true", help="Run in dev mode (localhost:3000)")
     args = parser.parse_args()
 
+    def run_ws():
+        # Setup new event loop for this background thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(main(args.host, args.port))
+        except Exception as e:
+            logger.error(f"WS error: {e}")
+
+    ws_thread = threading.Thread(target=run_ws, daemon=True)
+    ws_thread.start()
+
+    # Give WS server a moment to bind
+    time.sleep(0.5)
+
+    if args.dev:
+        url = "http://localhost:3000"
+    else:
+        # In production, look for the Next.js static exported 'out' directory
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
+        out_dir = os.path.join(base_dir, "frontend", "out")
+        if os.path.exists(out_dir):
+            url = os.path.join(out_dir, "index.html")
+        else:
+            url = os.path.join(base_dir, "out", "index.html") # PyInstaller relative directory search
+
+    window = webview.create_window("Packet Capture Engine", url, width=1280, height=800)
+    
     try:
-        asyncio.run(main(args.host, args.port))
+        webview.start()
     except KeyboardInterrupt:
         logger.info("Server stopped by user.")
     finally:
