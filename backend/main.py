@@ -305,6 +305,40 @@ if __name__ == "__main__":
     ws_thread = threading.Thread(target=run_ws, daemon=True)
     ws_thread.start()
 
+    # --- Launch ML Engine ---
+    ml_process = None
+    if not args.dev:
+        # In production, look for the bundled ml_engine.exe next to our backend.exe
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            
+        ml_exe = os.path.join(base_dir, "ml_risk_engine", "dist", "ml_engine", "ml_engine.exe")
+        
+        # NSIS puts everything in $INSTDIR, so ml_engine.exe is also at root often, lets check both
+        root_ml_exe = os.path.join(base_dir, "ml_engine", "ml_engine.exe")
+        direct_ml_exe = os.path.join(base_dir, "ml_engine.exe")
+
+        ml_path = None
+        for p in [ml_exe, root_ml_exe, direct_ml_exe]:
+            if os.path.exists(p):
+                ml_path = p
+                break
+                
+        if ml_path:
+            logger.info(f"Starting ML Engine: {ml_path}")
+            import subprocess
+            try:
+                # We spawn it and don't block. We kill it at exit.
+                # Do not use DEVNULL for stdout/stderr as it can crash frozen uvicorn on Windows
+                creationflags = 0x08000000 if sys.platform == "win32" else 0 # CREATE_NO_WINDOW
+                ml_process = subprocess.Popen([ml_path], creationflags=creationflags)
+            except Exception as e:
+                logger.error(f"Failed to start ML engine: {e}")
+        else:
+            logger.warning("ML Engine executable not found. Security dashboard will show offline.")
+
     # Give WS server a moment to bind
     time.sleep(0.5)
 
@@ -330,5 +364,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("Server stopped by user.")
     finally:
+        if ml_process:
+            ml_process.terminate()
+            ml_process.wait()
         if engine.is_running:
             engine.stop()

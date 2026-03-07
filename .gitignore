@@ -23,6 +23,14 @@ backend/env/
 *.egg
 MANIFEST
 
+# ─── ML Risk Engine ────────────────────────────────────────────────────────
+ml_risk_engine/__pycache__/
+ml_risk_engine/build/
+ml_risk_engine/dist/
+ml_risk_engine/datasets/*.csv
+ml_risk_engine/datasets/*.pcap
+ml_risk_engine/models/saved/*.pkl
+
 # ─── Build Outputs & Installers ───────────────────────────────────────────
 dist/
 release/

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { usePacketCapture } from "../hooks/usePacketCapture";
 import Toolbar from "../components/Toolbar";
 import PacketTable from "../components/PacketTable";
@@ -41,10 +42,10 @@ export default function Home() {
         </div>
 
         {/* Tabs */}
-        <nav className="flex-1 flex h-full items-end px-4 gap-1">
+        <nav className="flex-1 flex h-full items-end justify-center px-4 gap-1">
           <button
             onClick={() => setActiveTab("packets")}
-            className={`px-4 h-9 text-[12px] font-semibold rounded-t-lg border-b-2 transition-all flex items-center gap-2 ${
+            className={`px-5 h-9 text-[12px] font-semibold rounded-t-lg border-b-2 transition-all flex items-center gap-2 ${
               activeTab === "packets"
                 ? "text-[var(--accent-light)] border-[var(--accent-primary)] bg-[var(--surface-2)]"
                 : "text-[var(--text-tertiary)] border-transparent hover:text-[var(--text-secondary)]"
@@ -55,7 +56,7 @@ export default function Home() {
           </button>
           <button
             onClick={() => setActiveTab("sessions")}
-            className={`px-4 h-9 text-[12px] font-semibold rounded-t-lg border-b-2 transition-all flex items-center gap-2 ${
+            className={`px-5 h-9 text-[12px] font-semibold rounded-t-lg border-b-2 transition-all flex items-center gap-2 ${
               activeTab === "sessions"
                 ? "text-[var(--accent-light)] border-[var(--accent-primary)] bg-[var(--surface-2)]"
                 : "text-[var(--text-tertiary)] border-transparent hover:text-[var(--text-secondary)]"
@@ -64,6 +65,10 @@ export default function Home() {
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
             Sessions
           </button>
+          <Link href="/security" className="ml-4 px-5 h-9 text-[12px] font-semibold rounded-t-lg border-b-2 transition-all flex items-center gap-2 text-[var(--danger)] border-[var(--danger)]/30 hover:border-[var(--danger)] bg-[var(--danger)]/5 hover:bg-[var(--surface-2)]">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Security ML Engine
+          </Link>
         </nav>
 
         {/* Connection Status */}

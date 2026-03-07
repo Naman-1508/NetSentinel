@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  # The original DeepShark capture backend (Needs root/host network for raw sockets)
+  deepshark-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: "host" # Required for packet capture
+    volumes:
+      - ./backend/captures:/app/backend/captures
+    restart: unless-stopped
+
+  # Our new supervised ML Risk Engine (FastAPI)
+  ml-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.ml
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./ml_risk_engine/models/saved:/app/ml_risk_engine/models/saved
+      - ./logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      - deepshark-backend
+
+  # The Next.js Security Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      - ml-engine

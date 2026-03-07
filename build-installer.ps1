@@ -31,16 +31,24 @@ python -m PyInstaller backend.spec --distpath dist --workpath build --noconfirm
 if ($LASTEXITCODE -ne 0) { Err "Backend build failed!" }
 Log "Backend built: backend\dist\backend.exe"
 
-# ─── 3. Build Frontend (Next.js static export) ──────────────────────────────
+# ─── 3. Build ML Risk Engine (PyInstaller) ──────────────────────────────────
+Log "Building ML Risk Engine with PyInstaller..."
+Set-Location "$ROOT\ml_risk_engine"
+python -m PyInstaller ml_engine.spec --noconfirm
+if ($LASTEXITCODE -ne 0) { Err "ML Engine build failed!" }
+Log "ML Engine built: ml_risk_engine\dist\ml_engine\"
+
+# ─── 4. Build Frontend (Next.js static export) ──────────────────────────────
 Log "Building Next.js frontend..."
 Set-Location "$ROOT\frontend"
 npm run build
 if ($LASTEXITCODE -ne 0) { Err "Frontend build failed!" }
 Log "Frontend built: frontend\out\"
 
-# ─── 4. Verify artifacts exist ──────────────────────────────────────────────
+# ─── 5. Verify artifacts exist ──────────────────────────────────────────────
 Set-Location $ROOT
 if (-not (Test-Path "backend\dist\backend.exe")) { Err "Missing backend\dist\backend.exe" }
+if (-not (Test-Path "ml_risk_engine\dist\ml_engine\ml_engine.exe")) { Err "Missing ml_risk_engine\dist\ml_engine\ml_engine.exe" }
 if (-not (Test-Path "frontend\out\index.html"))  { Err "Missing frontend\out\index.html" }
 Log "Artifacts verified."
 

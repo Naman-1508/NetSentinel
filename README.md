@@ -15,6 +15,7 @@
 - **Dual Filtering System:**
   - **BPF Capture Filter:** High-performance adapter-level filtering (e.g., `tcp port 80`) to drop irrelevant packets before processing.
   - **Display Filter/Find:** Instant UI-level search (e.g., `192.168.1.1` or `HTTP`) without stopping the live capture.
+- **Machine Learning Intrusion Detection (NEW):** Real-time XGBoost algorithm that extracts flow features and identifies Malicious DDoS, Port Scans, and Web Attacks with live risk score metrics.
 - **Session Management:** Save captured traffic to standard `.pcap` files and load existing `.pcap` files for offline analysis.
 - **Zero-UAC Desktop Launch (Windows):** The final installer utilizes a Windows Task Scheduler trick (identical to Wireshark) to launch the app elevated automatically—no annoying UAC prompts on every launch!
 
@@ -34,9 +35,13 @@ PacketCapture is structured as a monorepo containing three main components:
    - Handles the raw socket capture loop in a dedicated background thread.
    - Parses packets and streams them via `websockets` (asyncio) to the frontend.
 
-3. **Desktop Wrapper (`/electron`)**
-   - Built with **Electron** and **electron-builder**.
-   - Hosts the static Next.js frontend in a Chromium window and manages the lifecycle of the hidden Python backend executable.
+3. **Desktop Wrapper (PyWebView)**
+   - The desktop window is spawned directly by the Python Backend using native Edge/Chromium OS hooks.
+   - Hosts the static Next.js frontend in a fast, lightweight window without needing Electron.
+
+4. **ML Risk Engine (`/ml_risk_engine`)**
+   - Built with **FastAPI**, **XGBoost**, and **Pandas**.
+   - Subscribes to the live packet capture stream over memory WebSockets and emits Machine Learning anomaly predictions to the frontend.
 
 ---
 
@@ -86,29 +91,21 @@ Open your browser to `http://localhost:3000` to see the live app!
 
 ## 📦 Building the Executable Installer
 
-If you want to package the app into a shareable `.exe` Windows Installer, the project uses a custom build pipeline combining `PyInstaller`, `Next.js Export`, and `NSIS`.
+If you want to package the app into a shareable `.exe` Windows Installer, the project uses a custom PowerShell build pipeline combining `PyInstaller` (for Backend & ML), `Next.js Export` (for UI), and `NSIS`.
 
-1. **Build the Frontend (Static Export):**
-   ```bash
-   cd frontend
-   npm run build
-   ```
+Run the automated build script from the root directory as an Administrator:
 
-2. **Compile the Python Backend:**
-   ```bash
-   cd backend
-   venv\Scripts\activate
-   pyinstaller backend.spec --distpath dist --workpath build --noconfirm
-   ```
+```powershell
+.\build-installer.ps1
+```
 
-3. **Package Electron & Compile NSIS Installer:**
-   ```bash
-   # From the project root
-   npm run dist
-   ```
-   *Note: Our custom `installer.nsi` script requires the `makensis` executable (usually cached by electron-builder in `%LOCALAPPDATA%\electron-builder\Cache\nsis\...\makensis.exe`).*
+The script will automatically:
+1. Compile the Scapy Python Backend
+2. Compile the FastAPI ML Risk Engine
+3. Export the React Frontend static site
+4. Package them all into an NSIS installer
 
-The final portable installer will be located at `dist/PacketCapture-Setup-1.0.0.exe`.
+The final portable installer will be located at `PacketCapture-Setup-1.0.0.exe` in the root folder.
 
 ---
 

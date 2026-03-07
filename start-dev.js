@@ -32,17 +32,32 @@ const nextProcess = spawn(npmCmd, ["run", "dev"], {
 
 waitForServer("http://localhost:3000")
     .then(() => {
-        console.log("Next.js ready. Launching Python backend...");
+        console.log("Next.js ready. Launching Python backend and ML Risk Engine...");
+
+        // 1. Launch DeepShark Backend
         const pyProcess = spawn(pythonCmd, ["main.py", "--dev"], {
             cwd: "backend",
             stdio: "inherit",
             shell: isWin
         });
 
+        // 2. Launch ML Risk Engine
+        const mlCmd = isWin ? "uvicorn" : "uvicorn"; // pip installs uvicorn to path
+        const mlProcess = spawn(mlCmd, ["api.server:app", "--port", "8000", "--host", "127.0.0.1"], {
+            cwd: "ml_risk_engine", // Run from inside ML directory to fix python imports
+            stdio: "inherit",
+            shell: isWin
+        });
+
         pyProcess.on("close", () => {
             console.log("Backend closed. Exiting...");
+            mlProcess.kill();
             nextProcess.kill();
             process.exit(0);
+        });
+
+        mlProcess.on("close", () => {
+            console.log("ML Engine closed.");
         });
     })
     .catch((err) => {
@@ -53,5 +68,7 @@ waitForServer("http://localhost:3000")
 
 process.on("SIGINT", () => {
     nextProcess.kill();
+    // Assuming python processes will be killed by SIGINT too, 
+    // but try/catch kill them just in case if variables were at root scope
     process.exit(0);
 });

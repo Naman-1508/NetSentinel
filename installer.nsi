@@ -72,7 +72,16 @@ Section "PacketCapture" SecMain
   ; Main executable (Python/PyWebView backend bundled)
   File "/oname=${APP_EXE}" "backend\dist\backend.exe"
 
+  ; ML Risk Engine (Bundled FastAPI/Scikit/XGBoost backend)
+  SetOutPath "$INSTDIR\ml_engine"
+  File /r "ml_risk_engine\dist\ml_engine\*.*"
+
+  ; Pre-trained models
+  SetOutPath "$INSTDIR\ml_risk_engine\models\saved"
+  File /r "ml_risk_engine\models\saved\*.*"
+
   ; App icon
+  SetOutPath "$INSTDIR"
   File "/oname=icon.ico" "assets\icon.ico"
 
   ; Frontend static files
