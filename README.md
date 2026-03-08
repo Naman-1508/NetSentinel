@@ -1,6 +1,6 @@
 <div align="center">
-  <img src="frontend/public/icon.png" width="128" height="128" alt="PacketCapture Logo" />
-  <h1>PacketCapture</h1>
+  <img src="frontend/public/icon.png" width="128" height="128" alt="NetSentinel Logo" />
+  <h1>NetSentinel</h1>
   <p>A high-performance, real-time network packet analyzer with a Wireshark-inspired interface, built on a modern hybrid stack.</p>
 </div>
 
@@ -15,6 +15,12 @@
 
 ---
 
+## ⚠️ Important Requirements (Windows)
+1. **[Npcap](https://npcap.com/) is Required:** Windows does not allow raw socket capture natively.
+   *Download the free installer and make sure to check **"Install Npcap in WinPcap API-compatible Mode"** during setup.*
+
+2. **Run as Administrator:** You MUST right-click the NetSentinel icon and select **"Run as Administrator"** every time you launch the app. If you don't, the packet capture engine and ML Engine will fail to start.
+
 ---
 
 ## ⚡ Features
@@ -26,15 +32,15 @@
 - **Dual Filtering System:**
   - **BPF Capture Filter:** High-performance adapter-level filtering (e.g., `tcp port 80`) to drop irrelevant packets before processing.
   - **Display Filter/Find:** Instant UI-level search (e.g., `192.168.1.1` or `HTTP`) without stopping the live capture.
-- **Machine Learning Intrusion Detection (NEW):** Real-time XGBoost algorithm that extracts flow features and identifies Malicious DDoS, Port Scans, and Web Attacks with live risk score metrics.
+- **Advanced ML Network Defense:** Real-time machine learning engine powered by Scikit-learn and XGBoost that extracts flow features to identify anomalies like Port Scans and DoS Floods dynamically.
 - **Session Management:** Save captured traffic to standard `.pcap` files and load existing `.pcap` files for offline analysis.
-- **Zero-UAC Desktop Launch (Windows):** The final installer utilizes a Windows Task Scheduler trick (identical to Wireshark) to launch the app elevated automatically—no annoying UAC prompts on every launch!
+- **Smart UAC Privilege Elevation:** The executable avoids annoying UAC prompts via registry-based automatic execution layer overrides.
 
 ---
 
 ## 🏗️ Architecture
 
-PacketCapture is structured as a monorepo containing three main components:
+NetSentinel is structured as a monorepo containing three main components:
 
 1. **Frontend (`/frontend`)**
    - Built with **Next.js (React)**, **TypeScript**, and **Tailwind CSS**.
@@ -116,7 +122,7 @@ The script will automatically:
 3. Export the React Frontend static site
 4. Package them all into an NSIS installer
 
-The final portable installer will be located at `PacketCapture-Setup-1.0.0.exe` in the root folder.
+The final portable installer will be located at `NetSentinel-Setup-1.0.0.exe` in the root folder.
 
 ---
 
