@@ -1,6 +1,6 @@
 <div align="center">
   <img src="frontend/public/icon.png" width="128" height="128" alt="PacketCapture Logo" />
-  <h1>PacketCapture</h1>
+  <h1>NetSentinel</h1>
   <p>A high-performance, real-time network packet analyzer with a Wireshark-inspired interface, built on a modern hybrid stack.</p>
 </div>
 
