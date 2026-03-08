@@ -14,37 +14,56 @@ class RiskPredictor:
     def reload(self):
         """Try to load the trained model and scaler. If missing, fallback to mock mode."""
         import sys
-        
-        # Determine base directory depending on if we are bundled or not
+
+        # Build a list of candidate directories to search for models/saved
+        candidates = []
+
         if getattr(sys, 'frozen', False):
-             # When running as a PyInstaller executable, find models next to the .exe
-             base_path = os.path.dirname(sys.executable)
-             # NSIS deposits the models directory directly in the same parent dir usually or inside ml_risk_engine depending on structure
-             models_path = os.path.join(base_path, "ml_risk_engine", "models", "saved")
-             if not os.path.exists(models_path):
-                 models_path = os.path.join(base_path, "models", "saved")
+            # PyInstaller frozen exe — sys.executable is the .exe itself
+            exe_dir = os.path.dirname(sys.executable)
+
+            # 1. PyInstaller COLLECT mode bundles data files next to exe
+            candidates.append(os.path.join(exe_dir, "models", "saved"))
+
+            # 2. _MEIPASS — onefile temp extraction folder
+            meipass = getattr(sys, '_MEIPASS', None)
+            if meipass:
+                candidates.append(os.path.join(meipass, "models", "saved"))
+
+            # 3. NSIS may have installed models in a sibling ml_risk_engine folder
+            candidates.append(os.path.join(exe_dir, "ml_risk_engine", "models", "saved"))
+            candidates.append(os.path.join(os.path.dirname(exe_dir), "ml_risk_engine", "models", "saved"))
         else:
-             # Normal python execution
-             base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-             models_path = os.path.join(base_path, "models", "saved")
-             
+            # Normal python execution — models are relative to the ml_risk_engine root
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            candidates.append(os.path.join(base_path, "models", "saved"))
+
+        models_path = None
+        for c in candidates:
+            print(f"RiskPredictor: Checking {c}")
+            if os.path.exists(os.path.join(c, "best_model.pkl")):
+                models_path = c
+                break
+
+        if models_path is None:
+            print("RiskPredictor: No trained model found in any candidate path. Using heuristic mock predictor.")
+            self.is_mock = True
+            return
+
         model_file = os.path.join(models_path, "best_model.pkl")
         scaler_file = os.path.join(models_path, "scaler.pkl")
-        
-        print(f"RiskPredictor: Looking for models in {models_path}")
-        
-        if os.path.exists(model_file) and os.path.exists(scaler_file):
-            try:
-                self.model = joblib.load(model_file)
-                self.scaler = joblib.load(scaler_file)
-                self.is_mock = False
-                print("RiskPredictor: Successfully loaded trained ML model.")
-            except Exception as e:
-                print(f"RiskPredictor ERROR loading model: {e}. Falling back to mock mode.")
-                self.is_mock = True
-        else:
-            print("RiskPredictor: No trained model found. Using heuristic mock predictor.")
+
+        print(f"RiskPredictor: Loading models from {models_path}")
+
+        try:
+            self.model = joblib.load(model_file)
+            self.scaler = joblib.load(scaler_file)
+            self.is_mock = False
+            print("RiskPredictor: Successfully loaded trained ML model.")
+        except Exception as e:
+            print(f"RiskPredictor ERROR loading model: {e}. Falling back to mock mode.")
             self.is_mock = True
+
 
     def predict(self, session: dict) -> dict:
         """

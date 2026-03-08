@@ -331,13 +331,18 @@ if __name__ == "__main__":
             logger.info(f"Starting ML Engine: {ml_path} (cwd={ml_dir})")
             import subprocess
             try:
-                # We spawn it and don't block. We kill it at exit.
                 creationflags = 0x08000000 if sys.platform == "win32" else 0 # CREATE_NO_WINDOW
+                # Log stdout/stderr to a file so failures are visible
+                log_path = os.path.join(ml_dir, "ml_engine.log")
+                ml_log = open(log_path, "w", buffering=1)
                 ml_process = subprocess.Popen(
                     [ml_path],
-                    cwd=ml_dir,                  # <-- PyInstaller needs THIS to locate bundled DLLs
+                    cwd=ml_dir,
+                    stdout=ml_log,
+                    stderr=ml_log,
                     creationflags=creationflags
                 )
+                logger.info(f"ML Engine started (PID {ml_process.pid}). Log: {log_path}")
             except Exception as e:
                 logger.error(f"Failed to start ML engine: {e}")
         else:

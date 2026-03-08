@@ -122,6 +122,12 @@ Section "NetSentinel" SecMain
   ; Write uninstaller
   WriteUninstaller "$INSTDIR\${UNINSTALLER}"
 
+  ; ── Auto-elevate on every launch (no manual "Run as Admin" needed) ─────
+  ; This tells Windows to always run NetSentinel with admin rights silently.
+  ; Required for raw packet capture (Npcap/WinPcap access).
+  WriteRegStr HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" \
+                   "$INSTDIR\${APP_EXE}" "RUNASADMIN"
+
 SectionEnd
 
 ; ─── Uninstall Section ────────────────────────────────────
@@ -141,7 +147,8 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\frontend"
   RMDir  "$INSTDIR"
 
-  ; Remove registry entry
+  ; Remove registry entries
   DeleteRegKey HKLM "${REG_UNINST_KEY}"
+  DeleteRegValue HKLM "SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers" "$INSTDIR\${APP_EXE}"
 
 SectionEnd
