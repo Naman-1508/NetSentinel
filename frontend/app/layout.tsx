@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PacketCapture — Real-Time Network Monitor",
+  title: "NetSentinel — Real-Time Threat Detection",
   description:
-    "Wireshark-inspired real-time packet capture and analysis tool. Monitor live network traffic with protocol-level breakdown.",
+    "NetSentinel: AI-powered real-time packet capture and ML threat detection. Monitor live network traffic with deep protocol analysis and intelligent anomaly detection.",
 };
 
 export default function RootLayout({

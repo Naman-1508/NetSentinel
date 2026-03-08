@@ -36,7 +36,7 @@ export default function Home() {
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
           <h1 className="text-sm font-bold tracking-wide text-[var(--text-primary)] font-display flex items-center gap-1">
-            Deep<span className="text-[var(--accent-light)]">Shark</span>
+            Net<span className="text-[var(--accent-light)]">Sentinel</span>
           </h1>
           <span className="text-[10px] font-mono-data text-[var(--text-muted)] bg-[var(--surface-2)] px-1.5 py-0.5 rounded border border-[var(--border-subtle)]">v2.1</span>
         </div>
@@ -185,7 +185,7 @@ export default function Home() {
             </span>
          </div>
          <div className="flex items-center gap-4 text-[var(--text-muted)]">
-            <span>127.0.0.1 — DeepShark v2.1</span>
+            <span>127.0.0.1 — NetSentinel v2.1</span>
          </div>
       </footer>
     </div>

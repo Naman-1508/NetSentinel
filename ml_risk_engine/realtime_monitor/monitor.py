@@ -25,8 +25,8 @@ class RealTimeMonitor:
         os.makedirs("logs", exist_ok=True)
         
     async def run(self):
-        """Main loop connecting to DeepShark backend WS indefinitely."""
-        logger.info(f"Connecting to DeepShark Capture Engine at {self.backend_url}")
+        """Main loop connecting to NetSentinel backend WS indefinitely."""
+        logger.info(f"Connecting to NetSentinel Capture Engine at {self.backend_url}")
         while True:
             try:
                 async with websockets.connect(self.backend_url) as ws:
@@ -61,8 +61,9 @@ class RealTimeMonitor:
                 
     async def _process_session(self, session: dict):
         """Extract features, run ML prediction, and broadcast result."""
-        # Minimum packet threshold to avoid predicting on single empty SYN packets
-        if session.get("packet_count", 0) < 3:
+        # Minimum packet threshold: skip tiny sessions (loopback pings, handshake-only, etc.)
+        # Also gives time for the session to accumulate meaningful stats before we evaluate.
+        if session.get("packet_count", 0) < 100:
             return
             
         # Run prediction
@@ -82,6 +83,7 @@ class RealTimeMonitor:
             "duration": session.get("duration"),
             "prediction": result["prediction"],
             "risk_score": result["risk_score"],
+            "explanation": result.get("explanation", "No explanation available"),
             "is_mock": result["is_mock"]
         }
         

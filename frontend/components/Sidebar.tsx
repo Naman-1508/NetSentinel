@@ -134,7 +134,7 @@ export default function Sidebar({ connectionState }: SidebarProps) {
 
       {/* Footer */}
       <div className="mt-auto pt-2 text-center border-t border-[var(--border-subtle)]">
-        <div className="text-[10px] font-mono-data text-[var(--text-muted)] tracking-widest uppercase">DeepShark // v2.1.0</div>
+        <div className="text-[10px] font-mono-data text-[var(--text-muted)] tracking-widest uppercase">NetSentinel // v2.1.0</div>
       </div>
     </div>
   );

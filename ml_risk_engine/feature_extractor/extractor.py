@@ -22,7 +22,7 @@ FEATURES = [
 
 def extract_features(session: Dict[str, Any]) -> pd.DataFrame:
     """
-    Converts a live DeepShark session dictionary into a single-row DataFrame 
+    Converts a live NetSentinel session dictionary into a single-row DataFrame 
     with exactly the features the ML model requires.
     """
     duration = max(session.get("duration", 0.0), 0.001)

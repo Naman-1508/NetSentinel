@@ -9,7 +9,7 @@ def main():
     datasets_dir = os.path.join(base_dir, "datasets")
     save_dir = os.path.join(base_dir, "models", "saved")
     
-    print(f"--- DeepShark ML Risk Engine Training ---")
+    print(f"--- NetSentinel ML Risk Engine Training ---")
     print(f"Looking for dataset files in: {datasets_dir}")
     
     try:

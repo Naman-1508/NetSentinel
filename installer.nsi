@@ -1,5 +1,5 @@
 ; ============================================================
-;  PacketCapture — Premium Production Installer Script
+;  NetSentinel — AI-Powered Network Threat Detection
 ;  Built with NSIS 3.x + MUI2
 ; ============================================================
 
@@ -8,16 +8,16 @@
 !include "LogicLib.nsh"
 
 ; ─── App Metadata ─────────────────────────────────────────
-!define APP_NAME        "PacketCapture"
+!define APP_NAME        "NetSentinel"
 !define APP_VERSION     "1.0.0"
-!define APP_PUBLISHER   "PacketCapture Labs"
+!define APP_PUBLISHER   "NetSentinel Labs"
 !define APP_URL         "https://github.com/Naman-1508/PacketCapture"
-!define APP_EXE         "PacketCapture.exe"
+!define APP_EXE         "NetSentinel.exe"
 !define UNINSTALLER     "Uninstall.exe"
 !define REG_UNINST_KEY  "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 
 Name             "${APP_NAME} ${APP_VERSION}"
-OutFile          "PacketCapture-Setup-${APP_VERSION}.exe"
+OutFile          "NetSentinel-Setup-${APP_VERSION}.exe"
 InstallDir       "$PROGRAMFILES64\${APP_NAME}"
 InstallDirRegKey HKLM "${REG_UNINST_KEY}" "InstallLocation"
 RequestExecutionLevel admin
@@ -25,14 +25,14 @@ SetCompressor    /SOLID lzma
 SetCompressorDictSize 32
 
 ; ─── Branding ─────────────────────────────────────────────
-BrandingText     "${APP_NAME} ${APP_VERSION} — Real-Time Network Monitor"
+BrandingText     "${APP_NAME} ${APP_VERSION} — Real-Time Threat Detection"
 
 ; ─── MUI Settings ─────────────────────────────────────────
 !define MUI_ABORTWARNING
 !define MUI_ICON                    "assets\icon.ico"
 !define MUI_UNICON                  "assets\icon.ico"
 !define MUI_FINISHPAGE_RUN          "$INSTDIR\${APP_EXE}"
-!define MUI_FINISHPAGE_RUN_TEXT     "Launch PacketCapture"
+!define MUI_FINISHPAGE_RUN_TEXT     "Launch NetSentinel"
 !define MUI_FINISHPAGE_LINK         "Visit Project on GitHub"
 !define MUI_FINISHPAGE_LINK_LOCATION "${APP_URL}"
 
@@ -56,12 +56,12 @@ VIProductVersion                    "1.0.0.0"
 VIAddVersionKey "ProductName"       "${APP_NAME}"
 VIAddVersionKey "ProductVersion"    "${APP_VERSION}"
 VIAddVersionKey "CompanyName"       "${APP_PUBLISHER}"
-VIAddVersionKey "FileDescription"   "PacketCapture Installer"
+VIAddVersionKey "FileDescription"   "NetSentinel Installer"
 VIAddVersionKey "FileVersion"       "${APP_VERSION}"
 VIAddVersionKey "LegalCopyright"    "© 2025 ${APP_PUBLISHER}"
 
 ; ─── Install Section ──────────────────────────────────────
-Section "PacketCapture" SecMain
+Section "NetSentinel" SecMain
   SectionIn RO   ; Required — cannot be deselected
 
   ; Kill old process if running
@@ -70,7 +70,7 @@ Section "PacketCapture" SecMain
   SetOutPath "$INSTDIR"
 
   ; Main executable (Python/PyWebView backend bundled)
-  File "/oname=${APP_EXE}" "backend\dist\backend.exe"
+  File "/oname=${APP_EXE}" "backend\dist\NetSentinel.exe"
 
   ; ML Risk Engine (Bundled FastAPI/Scikit/XGBoost backend)
   SetOutPath "$INSTDIR\ml_engine"
@@ -93,7 +93,7 @@ Section "PacketCapture" SecMain
   CreateShortcut  "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" \
                   "$INSTDIR\${APP_EXE}" "" \
                   "$INSTDIR\icon.ico" 0 SW_SHOWNORMAL "" \
-                  "Real-time Packet Capture & Network Monitor"
+                  "Real-time Network Threat Detection & ML Analysis"
   CreateShortcut  "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" \
                   "$INSTDIR\${UNINSTALLER}"
 
@@ -101,7 +101,7 @@ Section "PacketCapture" SecMain
   CreateShortcut  "$DESKTOP\${APP_NAME}.lnk" \
                   "$INSTDIR\${APP_EXE}" "" \
                   "$INSTDIR\icon.ico" 0 SW_SHOWNORMAL "" \
-                  "Real-time Packet Capture & Network Monitor"
+                  "Real-time Network Threat Detection & ML Analysis"
 
   ; ── Registry — Add/Remove Programs entry ──────────────
   WriteRegStr   HKLM "${REG_UNINST_KEY}" "DisplayName"      "${APP_NAME}"

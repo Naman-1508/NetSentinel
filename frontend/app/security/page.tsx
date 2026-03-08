@@ -17,6 +17,7 @@ interface RiskPrediction {
   prediction: string;
   risk_score: number;
   is_mock: boolean;
+  explanation?: string;
 }
 
 export default function SecurityDashboard() {
@@ -96,6 +97,11 @@ export default function SecurityDashboard() {
     }
   };
 
+  const resetFeed = () => {
+    setFlows([]);
+    updateStats([]);
+  };
+
   const maliciousFlows = flows.filter(f => f.prediction === "Malicious").slice(0, 10);
 
   return (
@@ -108,7 +114,7 @@ export default function SecurityDashboard() {
              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           </div>
           <h1 className="text-sm font-bold tracking-wide text-[var(--text-primary)] font-display flex items-center gap-1">
-            DeepShark <span className="text-[var(--danger)]">IDS</span>
+            NetSentinel <span className="text-[var(--danger)]">IDS</span>
           </h1>
         </div>
 
@@ -124,8 +130,17 @@ export default function SecurityDashboard() {
           </div>
         </nav>
 
-        {/* ML Status */}
-        <div className="flex items-center gap-3 w-56 justify-end">
+        {/* ML Status & Controls */}
+        <div className="flex items-center gap-3 w-72 justify-end">
+          <button 
+            onClick={resetFeed}
+            className="px-3 py-1 text-[11px] font-semibold rounded bg-[var(--surface-2)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-1.5"
+            title="Clear all flow history"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            Reset
+          </button>
+          
           <div className="pill bg-[var(--surface-2)] border border-[var(--border-subtle)]">
             <span className={`h-2 w-2 rounded-full transition-colors ${
               wsState === 'connected' ? 'bg-[var(--success)] animate-pulse-dot' 
@@ -235,7 +250,7 @@ export default function SecurityDashboard() {
                       No malicious activity detected.
                    </div>
                 )}
-                {maliciousFlows.map((f, i) => (
+                 {maliciousFlows.map((f, i) => (
                    <div key={i} className="bg-[var(--surface-2)] border border-[var(--danger)]/20 p-2.5 rounded-lg flex flex-col gap-1 shadow-sm">
                       <div className="flex justify-between items-start">
                          <span className="text-[10px] font-mono-data text-[var(--danger)] font-bold">SUSPICIOUS FLOW DETECTED</span>
@@ -247,9 +262,17 @@ export default function SecurityDashboard() {
                       <div className="flex gap-2 mt-1">
                          <span className="pill text-[8px] bg-transparent border border-[var(--border-subtle)] text-[var(--text-secondary)]">{f.protocol} / {f.bytes}B</span>
                       </div>
+                      
+                      {/* Explainability Section */}
+                      <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]/50">
+                        <div className="flex items-start gap-1.5 text-[10px] text-[var(--text-secondary)]">
+                          <svg className="flex-shrink-0 mt-0.5 text-[var(--warning)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                          <span className="leading-tight">{f.explanation || "Statistical deviation in traffic patterns."}</span>
+                        </div>
+                      </div>
                    </div>
-                ))}
-             </div>
+                 ))}
+              </div>
           </div>
 
         </div>

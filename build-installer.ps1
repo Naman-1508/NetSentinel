@@ -1,4 +1,4 @@
-# Build PacketCapture — Full Production Build Script
+# Build NetSentinel — Full Production Build Script
 # Run this from the root of the project as Administrator
 # Usage: powershell -ExecutionPolicy Bypass -File build-installer.ps1
 
@@ -47,7 +47,7 @@ Log "Frontend built: frontend\out\"
 
 # ─── 5. Verify artifacts exist ──────────────────────────────────────────────
 Set-Location $ROOT
-if (-not (Test-Path "backend\dist\backend.exe")) { Err "Missing backend\dist\backend.exe" }
+if (-not (Test-Path "backend\dist\NetSentinel.exe")) { Err "Missing backend\dist\NetSentinel.exe" }
 if (-not (Test-Path "ml_risk_engine\dist\ml_engine\ml_engine.exe")) { Err "Missing ml_risk_engine\dist\ml_engine\ml_engine.exe" }
 if (-not (Test-Path "frontend\out\index.html"))  { Err "Missing frontend\out\index.html" }
 Log "Artifacts verified."
@@ -57,10 +57,10 @@ Log "Compiling NSIS installer..."
 & $nsisPath installer.nsi
 if ($LASTEXITCODE -ne 0) { Err "NSIS compilation failed!" }
 
-$exePath = Join-Path $ROOT "PacketCapture-Setup-1.0.0.exe"
+$exePath = Join-Path $ROOT "NetSentinel-Setup-1.0.0.exe"
 if (Test-Path $exePath) {
     $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
-    Log "SUCCESS! Installer created: $exePath ($size MB)"
+    Log "SUCCESS! NetSentinel installer created: $exePath ($size MB)"
 } else {
     Err "Installer EXE not found after build!"
 }

@@ -59,7 +59,7 @@ def load_cicids2017(file_paths: list):
         
     df = pd.concat(dfs, axis=0, ignore_index=True)
     
-    print("Mapping CICIDS2017 to DeepShark features...")
+    print("Mapping CICIDS2017 to NetSentinel features...")
     df["flow_duration"] = (df["Flow Duration"] / 1e6).clip(lower=0.001) # microseconds to seconds
     df["total_packets"] = df["Total Fwd Packets"] + df["Total Backward Packets"]
     df["total_bytes"] = df["Total Length of Fwd Packets"] + df["Total Length of Bwd Packets"]

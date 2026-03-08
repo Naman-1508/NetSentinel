@@ -5,7 +5,7 @@ const isWin = process.platform === "win32";
 const npmCmd = isWin ? "npm.cmd" : "npm";
 const pythonCmd = isWin ? "python" : "python3";
 
-function waitForServer(url, timeout = 30000) {
+function waitForServer(timeout = 30000) {
     return new Promise((resolve, reject) => {
         const startTime = Date.now();
         const interval = setInterval(() => {
@@ -13,12 +13,15 @@ function waitForServer(url, timeout = 30000) {
                 clearInterval(interval);
                 reject(new Error("Timeout waiting for Next.js server"));
             }
-            http.get(url, (res) => {
-                if (res.statusCode === 200) {
-                    clearInterval(interval);
-                    resolve();
-                }
-            }).on("error", () => { });
+            // Try port 3000, fallback to 3001 (Next.js shifts port if 3000 is busy)
+            [3000, 3001].forEach(port => {
+                http.get(`http://localhost:${port}`, (res) => {
+                    if (res.statusCode === 200) {
+                        clearInterval(interval);
+                        resolve(port);
+                    }
+                }).on("error", () => { });
+            });
         }, 1000);
     });
 }
@@ -30,11 +33,11 @@ const nextProcess = spawn(npmCmd, ["run", "dev"], {
     shell: isWin
 });
 
-waitForServer("http://localhost:3000")
-    .then(() => {
-        console.log("Next.js ready. Launching Python backend and ML Risk Engine...");
+waitForServer()
+    .then((port) => {
+        console.log(`Next.js ready on port ${port}. Launching NetSentinel backend and ML Risk Engine...`);
 
-        // 1. Launch DeepShark Backend
+        // 1. Launch NetSentinel Backend
         const pyProcess = spawn(pythonCmd, ["main.py", "--dev"], {
             cwd: "backend",
             stdio: "inherit",

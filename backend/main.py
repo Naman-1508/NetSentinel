@@ -34,7 +34,7 @@ from typing import Set, Dict, Any, List
 
 import webview
 import websockets
-from websockets.server import WebSocketServerProtocol
+from websockets import WebSocketServerProtocol
 
 from capture import PacketCaptureEngine
 from interfaces import get_interfaces, get_default_interface
@@ -327,13 +327,17 @@ if __name__ == "__main__":
                 break
                 
         if ml_path:
-            logger.info(f"Starting ML Engine: {ml_path}")
+            ml_dir = os.path.dirname(ml_path)  # CRITICAL: cwd must be the ml_engine folder
+            logger.info(f"Starting ML Engine: {ml_path} (cwd={ml_dir})")
             import subprocess
             try:
                 # We spawn it and don't block. We kill it at exit.
-                # Do not use DEVNULL for stdout/stderr as it can crash frozen uvicorn on Windows
                 creationflags = 0x08000000 if sys.platform == "win32" else 0 # CREATE_NO_WINDOW
-                ml_process = subprocess.Popen([ml_path], creationflags=creationflags)
+                ml_process = subprocess.Popen(
+                    [ml_path],
+                    cwd=ml_dir,                  # <-- PyInstaller needs THIS to locate bundled DLLs
+                    creationflags=creationflags
+                )
             except Exception as e:
                 logger.error(f"Failed to start ML engine: {e}")
         else:
@@ -357,7 +361,7 @@ if __name__ == "__main__":
         else:
             url = os.path.join(base_dir, "out", "index.html") # PyInstaller relative directory search
 
-    window = webview.create_window("Packet Capture Engine", url, width=1280, height=800)
+    window = webview.create_window("NetSentinel", url, width=1280, height=800)
     
     try:
         webview.start()

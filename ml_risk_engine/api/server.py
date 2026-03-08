@@ -5,7 +5,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from realtime_monitor.monitor import RealTimeMonitor
 
-app = FastAPI(title="DeepShark ML Risk Engine", version="1.0.0")
+app = FastAPI(title="NetSentinel ML Risk Engine", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,7 +27,7 @@ async def startup_event():
     asyncio.create_task(monitor.run())
     # Start the broadcaster
     asyncio.create_task(broadcast_predictions())
-    print("DeepShark ML Engine started. Listening to Capture backend on ws://localhost:8765")
+    print("NetSentinel ML Engine started. Listening to Capture backend on ws://localhost:8765")
 
 async def broadcast_predictions():
     """Reads from monitor's queue and sends to all connected dashboards."""
@@ -58,7 +58,13 @@ async def health_check():
 @app.get("/api/model-metrics")
 async def get_metrics():
     """Returns training metrics if a model was trained."""
-    metrics_path = "models/saved/training_metrics.json"
+    import sys
+    if getattr(sys, 'frozen', False):
+        base_path = os.path.dirname(sys.executable)
+        metrics_path = os.path.join(base_path, "models", "saved", "training_metrics.json")
+    else:
+        metrics_path = "models/saved/training_metrics.json"
+
     if os.path.exists(metrics_path):
         with open(metrics_path, "r") as f:
             return json.load(f)
@@ -89,3 +95,9 @@ async def websocket_endpoint(websocket: WebSocket):
         print("Dashboard disconnected.")
     finally:
         connected_clients.discard(websocket)
+
+if __name__ == "__main__":
+    import uvicorn
+    import multiprocessing
+    multiprocessing.freeze_support()
+    uvicorn.run(app, host="127.0.0.1", port=8000)
