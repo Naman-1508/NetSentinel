@@ -177,6 +177,7 @@ async def send_error(ws: WebSocketServerProtocol, message: str) -> None:
 
 async def handler(ws: WebSocketServerProtocol) -> None:
     """Handle a single WebSocket connection."""
+    global packet_id_counter
     addr = ws.remote_address
     logger.info(f"Client connected: {addr}")
 
@@ -219,7 +220,6 @@ async def handler(ws: WebSocketServerProtocol) -> None:
                 with stats_lock:
                     for k in stats:
                         stats[k] = 0
-                global packet_id_counter
                 packet_id_counter = 0
                 session_manager.clear()
                 engine.start(interface, bpf_filter=bpf_filter)

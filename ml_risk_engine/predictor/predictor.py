@@ -1,6 +1,7 @@
 import os
 import joblib
 import random
+import numpy as np
 from feature_extractor.extractor import extract_features
 
 class RiskPredictor:
@@ -94,6 +95,12 @@ class RiskPredictor:
             # 1. Extract features into DataFrame shape
             X_df = extract_features(session)
             
+            # Safety: guard against Inf/NaN that would crash the scaler.
+            # This can happen when packet_rate or byte_rate is extremely large,
+            # or when session fields are missing/zero.
+            X_df.replace([np.inf, -np.inf], np.nan, inplace=True)
+            X_df.fillna(0, inplace=True)
+            
             # 2. Scale numeric features
             numeric_cols = ["flow_duration", "total_packets", "total_bytes", "avg_packet_size", "packet_rate", "byte_rate", "syn_count", "ack_count", "fin_count", "rst_count"]
             X_df[numeric_cols] = self.scaler.transform(X_df[numeric_cols])
@@ -132,7 +139,9 @@ class RiskPredictor:
             
         except Exception as e:
             # Fallback if something fails during live inference
+            import traceback
             print(f"Prediction error: {e}")
+            traceback.print_exc()
             return self._mock_predict(session)
 
     def _mock_predict(self, session: dict) -> dict:

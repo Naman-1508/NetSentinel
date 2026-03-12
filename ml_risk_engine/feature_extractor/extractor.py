@@ -53,5 +53,14 @@ def extract_features(session: Dict[str, Any]) -> pd.DataFrame:
     }
 
     # Return as DataFrame to match scikit-learn training format
-    return pd.DataFrame([features], columns=FEATURES)
+    df = pd.DataFrame([features], columns=FEATURES)
+    
+    # Sanitize: replace Inf/-Inf with large-but-finite caps, replace NaN with 0.
+    # Live sessions can produce Inf when duration is extremely tiny (≈0),
+    # and the CICIDS2017 dataset has known Inf values in packet/byte rate columns.
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df.fillna(0, inplace=True)
+    
+    return df
+
 

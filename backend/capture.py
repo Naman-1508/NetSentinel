@@ -31,6 +31,7 @@ class PacketCaptureEngine:
         self._paused = threading.Event()
         self._stop_flag = threading.Event()
         self._interface: str = ""
+        self._bpf_filter: str = ""
         self._lock = threading.Lock()
 
     @property
