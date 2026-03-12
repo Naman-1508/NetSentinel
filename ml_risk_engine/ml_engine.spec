@@ -21,14 +21,16 @@ d_xg = collect_data_files('xgboost')
 d_pd = collect_data_files('pandas')
 d_np = collect_data_files('numpy')
 d_jl = collect_data_files('joblib')
+d_sp = collect_data_files('scipy')  # Required by joblib when unpickling sklearn/XGBoost models
 
 b_np = collect_dynamic_libs('numpy')
 b_pd = collect_dynamic_libs('pandas')
 b_xg = collect_dynamic_libs('xgboost')
+b_sp = collect_dynamic_libs('scipy')  # scipy native libs needed at runtime
 
 # ── Combine ─────────────────────────────────────────────────────────────────
-all_datas    = d_uv + d_fa + d_ws + d_st + d_ai + d_sk + d_xg + d_pd + d_np + d_jl
-all_binaries = b_uv + b_fa + b_ws + b_st + b_ai + b_np + b_pd + b_xg
+all_datas    = d_uv + d_fa + d_ws + d_st + d_ai + d_sk + d_xg + d_pd + d_np + d_jl + d_sp
+all_binaries = b_uv + b_fa + b_ws + b_st + b_ai + b_np + b_pd + b_xg + b_sp
 all_hidden   = h_uv + h_fa + h_ws + h_st + h_ai + [
     # scikit-learn estimators
     'sklearn', 'sklearn.ensemble', 'sklearn.ensemble._forest',
@@ -38,6 +40,8 @@ all_hidden   = h_uv + h_fa + h_ws + h_st + h_ai + [
     'sklearn.utils._bunch', 'sklearn.utils.validation', 'sklearn.metrics',
     # xgboost
     'xgboost', 'xgboost.sklearn', 'xgboost.core',
+    # scipy — required by joblib when unpickling sklearn/XGBoost models
+    'scipy', 'scipy.special', 'scipy.linalg', 'scipy.sparse', 'scipy.sparse.csgraph',
     # data
     'joblib', 'joblib.externals.loky', 'joblib.externals.loky.process_executor',
     'pandas', 'numpy',
@@ -61,7 +65,6 @@ a = Analysis(
     excludes=[
         # ── These are the big ones not used by NetSentinel ──
         'matplotlib', 'matplotlib.pyplot',
-        'scipy',
         'PIL', 'Pillow',
         'IPython', 'jupyter', 'notebook',
         'sympy',

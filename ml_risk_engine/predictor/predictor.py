@@ -23,17 +23,22 @@ class RiskPredictor:
             # PyInstaller frozen exe — sys.executable is the .exe itself
             exe_dir = os.path.dirname(sys.executable)
 
-            # 1. PyInstaller COLLECT mode bundles data files next to exe
+            # 1. PyInstaller COLLECT mode (default): data files go into _internal/ next to exe
+            #    e.g. C:\Program Files\NetSentinel\ml_engine\_internal\models\saved\
+            candidates.append(os.path.join(exe_dir, "_internal", "models", "saved"))
+
+            # 2. PyInstaller COLLECT mode legacy / flat layout: next to exe directly
             candidates.append(os.path.join(exe_dir, "models", "saved"))
 
-            # 2. _MEIPASS — onefile temp extraction folder
+            # 3. _MEIPASS — onefile temp extraction folder
             meipass = getattr(sys, '_MEIPASS', None)
             if meipass:
                 candidates.append(os.path.join(meipass, "models", "saved"))
 
-            # 3. NSIS may have installed models in a sibling ml_risk_engine folder
-            candidates.append(os.path.join(exe_dir, "ml_risk_engine", "models", "saved"))
+            # 4. NSIS installer puts models in $INSTDIR\ml_risk_engine\models\saved\
+            #    which is a sibling of $INSTDIR\ml_engine\ (where the exe lives)
             candidates.append(os.path.join(os.path.dirname(exe_dir), "ml_risk_engine", "models", "saved"))
+            candidates.append(os.path.join(exe_dir, "ml_risk_engine", "models", "saved"))
         else:
             # Normal python execution — models are relative to the ml_risk_engine root
             base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
