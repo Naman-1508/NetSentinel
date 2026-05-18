@@ -201,7 +201,7 @@ export default function SecurityDashboard() {
                               <div className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                                 f.prediction?.toLowerCase() !== 'benign' ? 'bg-[var(--danger)]/15 text-[var(--danger)] border border-[var(--danger)]/30' : 'bg-[var(--success)]/15 text-[var(--success)] border border-[var(--success)]/30'
                               }`}>
-                                {f.prediction.toUpperCase()}
+                                {f.prediction?.toLowerCase() !== 'benign' ? 'MALICIOUS' : 'BENIGN'}
                              </div>
                              <div className="text-[9px] text-[var(--text-secondary)]">{(f.risk_score * 100).toFixed(0)}%</div>
                              <div className="w-10 h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden">
@@ -267,7 +267,7 @@ export default function SecurityDashboard() {
                       <div className="flex gap-2 mt-1">
                          <span className="pill text-[8px] bg-transparent border border-[var(--border-subtle)] text-[var(--text-secondary)]">{f.protocol} / {f.bytes}B</span>
                          <span className={`pill text-[8px] bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--danger)]`}>
-                           {f.prediction.toUpperCase()}
+                           {f.prediction?.toLowerCase() !== 'benign' ? 'MALICIOUS' : 'BENIGN'}
                          </span>
                          {f.correlation_alerts?.slice(0, 2).map((alert: any, index: number) => (
                            <span key={index} className="pill text-[8px] bg-[var(--warning)]/10 border border-[var(--warning)]/30 text-[var(--warning)]">
