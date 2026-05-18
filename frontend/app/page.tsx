@@ -32,13 +32,13 @@ export default function Home() {
       <header className="h-12 flex-shrink-0 bg-[var(--surface-1)] flex items-center px-5 border-b border-[var(--border-subtle)]">
         {/* Logo */}
         <div className="flex items-center gap-2.5 w-56">
-          <div className="w-7 h-7 rounded-lg bg-[var(--accent-primary)] flex items-center justify-center flex-shrink-0 text-white">
+          <div className="w-7 h-7 rounded-lg bg-[var(--accent-primary)] flex items-center justify-center flex-shrink-0 text-[var(--bg-app)] shadow-[0_0_15px_var(--accent-primary)] border border-[var(--accent-primary)]">
              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
-          <h1 className="text-sm font-bold tracking-wide text-[var(--text-primary)] font-display flex items-center gap-1">
-            Net<span className="text-[var(--accent-light)]">Sentinel</span>
+          <h1 className="text-sm font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-[var(--text-primary)] to-[var(--text-secondary)] font-display flex items-center gap-1 drop-shadow-md">
+            Net<span className="text-[var(--accent-primary)]">Sentinel</span>
           </h1>
-          <span className="text-[10px] font-mono-data text-[var(--text-muted)] bg-[var(--surface-2)] px-1.5 py-0.5 rounded border border-[var(--border-subtle)]">v2.1</span>
+          <span className="text-[10px] font-mono-data text-[var(--accent-primary)] bg-[var(--surface-2)] px-1.5 py-0.5 rounded border border-[var(--accent-primary)]/30 shadow-[0_0_8px_var(--accent-primary)] shadow-opacity-20">v2.1</span>
         </div>
 
         {/* Tabs */}

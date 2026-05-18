@@ -1,12 +1,10 @@
 # ─── Dependencies ──────────────────────────────────────────────────────────
 node_modules/
-package-lock.json
 
 # ─── Next.js Frontend ─────────────────────────────────────────────────────
 frontend/.next/
 frontend/out/
 *.tsbuildinfo
-next-env.d.ts
 frontend/.env.local
 
 # ─── Python Backend ────────────────────────────────────────────────────────
@@ -30,6 +28,11 @@ ml_risk_engine/dist/
 ml_risk_engine/datasets/*.csv
 ml_risk_engine/datasets/*.pcap
 ml_risk_engine/models/saved/*.pkl
+
+# ─── Logs ───────────────────────────────────────────────────────────────────
+logs/
+backend/logs/
+ml_risk_engine/logs/
 
 # ─── Build Outputs & Installers ───────────────────────────────────────────
 dist/
@@ -64,3 +67,37 @@ backend/captures/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# ─── Jupyter Notebooks ───────────────────────────────────────────────────────
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# ─── Offline2 / Training Pipeline ────────────────────────────────────────────
+# Raw dataset CSVs (very large — up to 7GB total)
+Offline2/offline/data/
+Offline2/**/*.csv
+# Large training checkpoints (df_clean.pkl, split_chrono.pkl — can be GBs)
+Offline2/checkpoints/
+# Keep artifacts (model.pkl, scaler.pkl, explainer.pkl, feature_list.pkl)
+# but ignore any auto-generated confusion matrix PNGs if they get large
+Offline2/artifacts/confusion_matrix*.png
+
+# ─── Python __pycache__ (catch-all) ─────────────────────────────────────────
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
+# ─── PyInstaller Build Outputs ───────────────────────────────────────────────
+build/
+*.spec.bak
+backend/dist/
+backend/build/
+_MEIPASS*/
+
+# ─── Test Outputs ────────────────────────────────────────────────────────────
+tests/__pycache__/
+tests/*.log
+
+# ─── Misc ────────────────────────────────────────────────────────────────────
+Thumbs.db
+desktop.ini

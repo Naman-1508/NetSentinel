@@ -29,6 +29,7 @@ import time
 import argparse
 import sys
 import os
+import multiprocessing
 from collections import defaultdict, deque
 from typing import Set, Dict, Any, List
 
@@ -37,14 +38,75 @@ import websockets
 from websockets import WebSocketServerProtocol
 
 from capture import PacketCaptureEngine
-from interfaces import get_interfaces, get_default_interface
+from interfaces import get_interfaces, get_default_interface, resolve_capture_interface
 from session_manager import SessionManager
 
-# ─── Logging ────────────────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s - %(message)s",
-)
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ML_ROOT = os.path.join(REPO_ROOT, "ml_risk_engine")
+
+if getattr(sys, 'frozen', False):
+    # Frozen single-exe: _MEIPASS contains all bundled modules.
+    # We must add _MEIPASS to sys.path so 'import api.server', 'import realtime_monitor' etc. work.
+    _meipass = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    if _meipass not in sys.path:
+        sys.path.insert(0, _meipass)
+else:
+    if REPO_ROOT not in sys.path:
+        sys.path.insert(0, REPO_ROOT)
+    if ML_ROOT not in sys.path:
+        sys.path.insert(0, ML_ROOT)
+
+
+def _resolve_frontend_entry() -> str:
+    """Return the absolute path to the bundled frontend index.html."""
+    if getattr(sys, 'frozen', False):
+        base_candidates = [
+            getattr(sys, '_MEIPASS', os.path.dirname(sys.executable)),
+            os.path.dirname(sys.executable),
+        ]
+    else:
+        base_candidates = [REPO_ROOT]
+
+    rel_candidates = [
+        os.path.join('frontend', 'out', 'index.html'),
+        os.path.join('out', 'index.html'),
+        'index.html',
+    ]
+
+    for base_dir in base_candidates:
+        for rel_path in rel_candidates:
+            candidate = os.path.join(base_dir, rel_path)
+            if os.path.exists(candidate):
+                return candidate
+
+    checked_paths = [os.path.join(base, rel) for base in base_candidates for rel in rel_candidates]
+    raise FileNotFoundError(
+        "Frontend bundle not found. Checked: " + ", ".join(checked_paths)
+    )
+
+# ─── Logging ───────────────────────────────────────────────────────────────-
+def _configure_logging() -> None:
+    """Configure console + file logging; when frozen, write logs next to the EXE."""
+    level = logging.INFO
+    fmt = "%(asctime)s [%(levelname)s] %(name)s - %(message)s"
+    handlers = [logging.StreamHandler()]
+
+    try:
+        base_dir = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else REPO_ROOT
+        log_dir = os.path.join(base_dir, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "netsentinel.log")
+        fh = logging.FileHandler(log_file, encoding="utf-8")
+        handlers.append(fh)
+    except Exception:
+        # If file logging fails, continue with console only
+        pass
+
+    logging.basicConfig(level=level, format=fmt, handlers=handlers)
+
+
+_configure_logging()
 logger = logging.getLogger("PacketCapture.Server")
 
 # ─── Global State ───────────────────────────────────────────────────────────
@@ -67,6 +129,38 @@ id_lock = threading.Lock()
 # Session tracking
 session_manager = SessionManager()
 
+ml_server_thread = None
+WS_LOOP = None
+
+
+def _start_ml_engine() -> None:
+    """Run the ML FastAPI app inside this process as a background service."""
+    global ml_server_thread
+
+    if ml_server_thread and ml_server_thread.is_alive():
+        return
+
+    def run_ml_server() -> None:
+        try:
+            import uvicorn
+            from api.server import app
+
+            config = uvicorn.Config(
+                app,
+                host="127.0.0.1",
+                port=8000,
+                log_level="info",
+                access_log=False,
+            )
+            server = uvicorn.Server(config)
+            server.run()
+        except Exception as exc:
+            logger.error(f"Failed to start ML engine: {exc}")
+
+    ml_server_thread = threading.Thread(target=run_ml_server, daemon=True)
+    ml_server_thread.start()
+    logger.info("ML engine started inside the NetSentinel backend process.")
+
 
 def _next_id() -> int:
     global packet_id_counter
@@ -82,13 +176,14 @@ def on_packet_captured(parsed: Dict) -> None:
     proto = parsed.get("protocol", "OTHER")
 
     with stats_lock:
-        stats["total"] += 1
+        count = parsed.get("packet_count", 1)
+        stats["total"] += count
         if proto == "TCP":
-            stats["tcp"] += 1
+            stats["tcp"] += count
         elif proto == "UDP":
-            stats["udp"] += 1
+            stats["udp"] += count
         elif proto == "ICMP":
-            stats["icmp"] += 1
+            stats["icmp"] += count
 
     parsed["id"] = _next_id()
 
@@ -113,6 +208,11 @@ async def batch_broadcaster(loop: asyncio.AbstractEventLoop) -> None:
 
         if not batch:
             continue
+
+        try:
+            logger.info("Broadcasting %d packets to %d clients", len(batch), len(CONNECTED_CLIENTS))
+        except Exception:
+            logger.exception("Failed to log batch broadcast info")
 
         message = json.dumps({"type": "packets", "data": batch})
         await broadcast(message)
@@ -162,7 +262,27 @@ async def _safe_send(ws: WebSocketServerProtocol, message: str) -> None:
 
 # ─── Capture Engine (singleton) ──────────────────────────────────────────────
 
-engine = PacketCaptureEngine(on_packet_captured)
+def on_capture_error(message: str) -> None:
+    """Send capture failures to all clients so UI does not fail silently."""
+    logger.error(f"Capture engine error: {message}")
+
+    if WS_LOOP is None:
+        return
+
+    try:
+        asyncio.run_coroutine_threadsafe(
+            broadcast(json.dumps({"type": "error", "message": f"Capture failed: {message}"})),
+            WS_LOOP,
+        )
+        asyncio.run_coroutine_threadsafe(
+            broadcast(json.dumps({"type": "status", "state": "stopped"})),
+            WS_LOOP,
+        )
+    except Exception as exc:
+        logger.error(f"Failed to forward capture error to UI: {exc}")
+
+
+engine = PacketCaptureEngine(on_packet_captured, error_callback=on_capture_error)
 
 
 async def send_status(ws: WebSocketServerProtocol, state: str) -> None:
@@ -213,6 +333,7 @@ async def handler(ws: WebSocketServerProtocol) -> None:
                 if not interface:
                     # use default
                     interface = get_default_interface()
+                interface = resolve_capture_interface(interface)
                 if engine.is_running:
                     engine.stop()
                     await asyncio.sleep(0.2)
@@ -264,7 +385,9 @@ async def handler(ws: WebSocketServerProtocol) -> None:
 # ─── Entry Point ─────────────────────────────────────────────────────────────
 
 async def main(host: str, port: int) -> None:
+    global WS_LOOP
     loop = asyncio.get_running_loop()
+    WS_LOOP = loop
 
     logger.info(f"Starting WebSocket server on ws://{host}:{port}")
     logger.info("Press Ctrl+C to stop.")
@@ -287,11 +410,59 @@ async def main(host: str, port: int) -> None:
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
+
     parser = argparse.ArgumentParser(description="Packet Capture WebSocket Server")
     parser.add_argument("--host", default="localhost", help="Bind host (default: localhost)")
     parser.add_argument("--port", type=int, default=8765, help="Bind port (default: 8765)")
     parser.add_argument("--dev", action="store_true", help="Run in dev mode (localhost:3000)")
     args = parser.parse_args()
+
+    # --- Single-instance on Windows (prevent multiple launches) ---
+    def _ensure_single_instance() -> None:
+        if not getattr(sys, 'frozen', False) or os.name != 'nt':
+            return
+        try:
+            import ctypes
+            kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+            mutex_name = 'Global\\NetSentinel_Singleton_Mutex_v1'
+            handle = kernel32.CreateMutexW(None, ctypes.c_bool(False), mutex_name)
+            if not handle:
+                return
+            ERROR_ALREADY_EXISTS = 183
+            if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
+                # If another instance is running, notify and exit
+                try:
+                    ctypes.windll.user32.MessageBoxW(0, 'NetSentinel is already running.', 'NetSentinel', 0x40)
+                except Exception:
+                    pass
+                sys.exit(0)
+        except Exception:
+            # If single-instance enforcement fails, continue silently
+            return
+
+    _ensure_single_instance()
+
+    # --- Require Administrator for live capture when running as EXE ---
+    def _require_admin_or_exit() -> None:
+        if os.name != 'nt' or not getattr(sys, 'frozen', False):
+            return
+        try:
+            import ctypes
+            if not ctypes.windll.shell32.IsUserAnAdmin():
+                msg = (
+                    "NetSentinel requires Administrator privileges to capture live network traffic.\n"
+                    "Please run the program as Administrator (right-click → Run as administrator)."
+                )
+                try:
+                    ctypes.windll.user32.MessageBoxW(0, msg, 'NetSentinel', 0x30)
+                except Exception:
+                    pass
+                sys.exit(1)
+        except Exception:
+            return
+
+    _require_admin_or_exit()
 
     def run_ws():
         # Setup new event loop for this background thread
@@ -305,48 +476,8 @@ if __name__ == "__main__":
     ws_thread = threading.Thread(target=run_ws, daemon=True)
     ws_thread.start()
 
-    # --- Launch ML Engine ---
-    ml_process = None
-    if not args.dev:
-        # In production, look for the bundled ml_engine.exe next to our backend.exe
-        if getattr(sys, 'frozen', False):
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            
-        ml_exe = os.path.join(base_dir, "ml_risk_engine", "dist", "ml_engine", "ml_engine.exe")
-        
-        # NSIS puts everything in $INSTDIR, so ml_engine.exe is also at root often, lets check both
-        root_ml_exe = os.path.join(base_dir, "ml_engine", "ml_engine.exe")
-        direct_ml_exe = os.path.join(base_dir, "ml_engine.exe")
-
-        ml_path = None
-        for p in [ml_exe, root_ml_exe, direct_ml_exe]:
-            if os.path.exists(p):
-                ml_path = p
-                break
-                
-        if ml_path:
-            ml_dir = os.path.dirname(ml_path)  # CRITICAL: cwd must be the ml_engine folder
-            logger.info(f"Starting ML Engine: {ml_path} (cwd={ml_dir})")
-            import subprocess
-            try:
-                creationflags = 0x08000000 if sys.platform == "win32" else 0 # CREATE_NO_WINDOW
-                # Log stdout/stderr to a file so failures are visible
-                log_path = os.path.join(ml_dir, "ml_engine.log")
-                ml_log = open(log_path, "w", buffering=1)
-                ml_process = subprocess.Popen(
-                    [ml_path],
-                    cwd=ml_dir,
-                    stdout=ml_log,
-                    stderr=ml_log,
-                    creationflags=creationflags
-                )
-                logger.info(f"ML Engine started (PID {ml_process.pid}). Log: {log_path}")
-            except Exception as e:
-                logger.error(f"Failed to start ML engine: {e}")
-        else:
-            logger.warning("ML Engine executable not found. Security dashboard will show offline.")
+    # --- Launch ML Engine in-process ---
+    _start_ml_engine()
 
     # Give WS server a moment to bind
     time.sleep(0.5)
@@ -354,17 +485,11 @@ if __name__ == "__main__":
     if args.dev:
         url = "http://localhost:3000"
     else:
-        # In production, look for the Next.js static exported 'out' directory
-        if getattr(sys, 'frozen', False):
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            
-        out_dir = os.path.join(base_dir, "frontend", "out")
-        if os.path.exists(out_dir):
-            url = os.path.join(out_dir, "index.html")
-        else:
-            url = os.path.join(base_dir, "out", "index.html") # PyInstaller relative directory search
+        try:
+            url = _resolve_frontend_entry()
+        except FileNotFoundError as exc:
+            logger.error(str(exc))
+            raise
 
     window = webview.create_window("NetSentinel", url, width=1280, height=800)
     
@@ -373,8 +498,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("Server stopped by user.")
     finally:
-        if ml_process:
-            ml_process.terminate()
-            ml_process.wait()
         if engine.is_running:
             engine.stop()

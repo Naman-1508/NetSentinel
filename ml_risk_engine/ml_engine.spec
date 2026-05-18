@@ -54,6 +54,11 @@ models_path = os.path.abspath('models/saved')
 if os.path.exists(models_path):
     all_datas.append((models_path, 'models/saved'))
 
+# Also include Offline2 artifacts (where training notebooks save model.pkl/scaler.pkl)
+offline_artifacts = os.path.abspath('Offline2/artifacts')
+if os.path.exists(offline_artifacts):
+    all_datas.append((offline_artifacts, 'Offline2/artifacts'))
+
 a = Analysis(
     ['api/server.py'],
     pathex=['.'],

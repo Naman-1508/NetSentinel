@@ -1,66 +1,102 @@
-# Build NetSentinel — Full Production Build Script
-# Run this from the root of the project as Administrator
-# Usage: powershell -ExecutionPolicy Bypass -File build-installer.ps1
+# ============================================================
+# NetSentinel - One-click Build Script
+# Builds: frontend -> single PyInstaller exe -> NSIS installer
+# Run from repo root as Administrator
+# ============================================================
 
 $ErrorActionPreference = "Stop"
-$ROOT = Split-Path -Parent $MyInvocation.MyCommand.Path
+$Root = $PSScriptRoot
 
-function Log($msg) { Write-Host "[BUILD] $msg" -ForegroundColor Cyan }
-function Err($msg) { Write-Host "[ERROR] $msg" -ForegroundColor Red; exit 1 }
+Write-Host ""
+Write-Host "=====================================================" -ForegroundColor Cyan
+Write-Host "  NetSentinel Full Build Pipeline" -ForegroundColor Cyan
+Write-Host "=====================================================" -ForegroundColor Cyan
+Write-Host ""
 
-# ─── 1. Find NSIS ───────────────────────────────────────────────────────────
-$nsisPath = $null
-$candidates = @(
-    "C:\Program Files (x86)\NSIS\makensis.exe",
-    "C:\Program Files\NSIS\makensis.exe",
-    "$env:LOCALAPPDATA\Programs\NSIS\makensis.exe"
-)
-foreach ($p in $candidates) { if (Test-Path $p) { $nsisPath = $p; break } }
-if (-not $nsisPath) {
-    # Try PATH
-    $found = Get-Command makensis -ErrorAction SilentlyContinue
-    if ($found) { $nsisPath = $found.Source }
-}
-if (-not $nsisPath) { Err "NSIS not found. Install from https://nsis.sourceforge.io/" }
-Log "NSIS found: $nsisPath"
-
-# ─── 2. Build Backend (PyInstaller) ─────────────────────────────────────────
-Log "Building Python backend with PyInstaller..."
-Set-Location "$ROOT\backend"
-python -m PyInstaller backend.spec --distpath dist --workpath build --noconfirm
-if ($LASTEXITCODE -ne 0) { Err "Backend build failed!" }
-Log "Backend built: backend\dist\backend.exe"
-
-# ─── 3. Build ML Risk Engine (PyInstaller) ──────────────────────────────────
-Log "Building ML Risk Engine with PyInstaller..."
-Set-Location "$ROOT\ml_risk_engine"
-python -m PyInstaller ml_engine.spec --noconfirm
-if ($LASTEXITCODE -ne 0) { Err "ML Engine build failed!" }
-Log "ML Engine built: ml_risk_engine\dist\ml_engine\"
-
-# ─── 4. Build Frontend (Next.js static export) ──────────────────────────────
-Log "Building Next.js frontend..."
-Set-Location "$ROOT\frontend"
+# ---- Step 1: Build Next.js frontend (static export) --------
+Write-Host "[1/3] Building Next.js frontend..." -ForegroundColor Yellow
+Set-Location "$Root\frontend"
 npm run build
-if ($LASTEXITCODE -ne 0) { Err "Frontend build failed!" }
-Log "Frontend built: frontend\out\"
+if ($LASTEXITCODE -ne 0) { Write-Error "Frontend build failed!"; exit 1 }
+Write-Host '  Frontend built -> frontend\out' -ForegroundColor Green
 
-# ─── 5. Verify artifacts exist ──────────────────────────────────────────────
-Set-Location $ROOT
-if (-not (Test-Path "backend\dist\NetSentinel.exe")) { Err "Missing backend\dist\NetSentinel.exe" }
-if (-not (Test-Path "ml_risk_engine\dist\ml_engine\ml_engine.exe")) { Err "Missing ml_risk_engine\dist\ml_engine\ml_engine.exe" }
-if (-not (Test-Path "frontend\out\index.html"))  { Err "Missing frontend\out\index.html" }
-Log "Artifacts verified."
+# ---- Step 2: PyInstaller - single NetSentinel.exe ----------
+Write-Host ""
+Write-Host "[2/3] Compiling NetSentinel.exe with PyInstaller..." -ForegroundColor Yellow
+Set-Location "$Root\backend"
 
-# ─── 5. Run NSIS Installer Compilation ──────────────────────────────────────
-Log "Compiling NSIS installer..."
-& $nsisPath installer.nsi
-if ($LASTEXITCODE -ne 0) { Err "NSIS compilation failed!" }
-
-$exePath = Join-Path $ROOT "NetSentinel-Setup-1.0.0.exe"
-if (Test-Path $exePath) {
-    $size = [math]::Round((Get-Item $exePath).Length / 1MB, 2)
-    Log "SUCCESS! NetSentinel installer created: $exePath ($size MB)"
-} else {
-    Err "Installer EXE not found after build!"
+# Attempt to stop any running NetSentinel process so logs can be removed
+try {
+    $running = Get-Process -Name NetSentinel -ErrorAction SilentlyContinue
+    if ($running) {
+        Write-Host "Stopping running NetSentinel process(es)..." -ForegroundColor Yellow
+        $running | Stop-Process -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+    }
+} catch {
+    Write-Host "Warning: Unable to query/stop NetSentinel processes: $($_.Exception.Message)" -ForegroundColor Yellow
 }
+
+# Clean previous build to avoid stale cache issues (retry if locked)
+if (Test-Path "build") {
+    try { Remove-Item -Recurse -Force "build" -ErrorAction Stop } catch { Write-Host "Warning: failed to remove build: $($_.Exception.Message)" -ForegroundColor Yellow }
+}
+
+if (Test-Path "dist") {
+    $tries = 0
+    while ($tries -lt 5 -and (Test-Path "dist")) {
+        try {
+            Remove-Item -Recurse -Force "dist" -ErrorAction Stop
+            break
+        } catch {
+            Write-Host "Warning: failed to remove dist (attempt $($tries+1)): $($_.Exception.Message)" -ForegroundColor Yellow
+            Start-Sleep -Seconds 1
+            $tries++
+        }
+    }
+    if (Test-Path "dist") {
+        Write-Host "Could not remove dist directory after retries. Continuing build - old files may remain." -ForegroundColor Yellow
+    }
+}
+
+pyinstaller backend.spec -y
+if ($LASTEXITCODE -ne 0) { Write-Error "PyInstaller build failed!"; exit 1 }
+Write-Host '  NetSentinel.exe built -> backend\dist\NetSentinel.exe' -ForegroundColor Green
+
+# ---- Step 3: NSIS installer --------------------------------
+Write-Host ""
+Write-Host "[3/3] Creating NSIS installer..." -ForegroundColor Yellow
+Set-Location "$Root"
+
+# Check if NSIS is installed
+$makensis = Get-Command makensis -ErrorAction SilentlyContinue
+if (-not $makensis) {
+    # Try default install path
+    $nsisPaths = @(
+        "C:\Program Files (x86)\NSIS\makensis.exe",
+        "C:\Program Files\NSIS\makensis.exe"
+    )
+    foreach ($p in $nsisPaths) {
+        if (Test-Path $p) { $makensis = $p; break }
+    }
+}
+
+if (-not $makensis) {
+    Write-Host "  WARNING: NSIS not found. Skipping installer creation." -ForegroundColor Red
+    Write-Host "  Install NSIS from https://nsis.sourceforge.io/" -ForegroundColor Red
+    Write-Host "  Then run: makensis installer\NetSentinel.nsi" -ForegroundColor Yellow
+} else {
+    $nsisBin = if ($makensis -is [string]) { $makensis } else { $makensis.Source }
+    & $nsisBin "installer\NetSentinel.nsi"
+    if ($LASTEXITCODE -ne 0) { Write-Error "NSIS build failed!"; exit 1 }
+    Write-Host '  Installer created -> backend\dist\NetSentinel-Setup.exe' -ForegroundColor Green
+}
+
+Write-Host ''
+Write-Host '=====================================================' -ForegroundColor Cyan
+Write-Host '  BUILD COMPLETE!' -ForegroundColor Green
+Write-Host '=====================================================' -ForegroundColor Cyan
+Write-Host ''
+Write-Host '  Executable :  backend\dist\NetSentinel.exe'
+Write-Host '  Installer  :  backend\dist\NetSentinel-Setup.exe'
+Write-Host ''
