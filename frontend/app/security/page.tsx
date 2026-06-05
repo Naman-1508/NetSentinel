@@ -21,6 +21,11 @@ interface RiskPrediction {
   correlation_alerts?: { type: string; explanation: string; risk_score: number }[];
 }
 
+function getBinaryVerdict(flow: Pick<RiskPrediction, "prediction" | "binary_prediction">): "BENIGN" | "MALICIOUS" {
+  const raw = (flow.binary_prediction ?? flow.prediction ?? "").toString().trim().toLowerCase();
+  return raw === "benign" ? "BENIGN" : "MALICIOUS";
+}
+
 export default function SecurityDashboard() {
   const [flows, setFlows] = useState<RiskPrediction[]>([]);
   const [maliciousFlows, setMaliciousFlows] = useState<RiskPrediction[]>([]);
@@ -41,7 +46,7 @@ export default function SecurityDashboard() {
       .then(data => {
         if (Array.isArray(data)) {
           setFlows(data.slice(0, 100));
-          const mal = data.filter(f => f.prediction?.toLowerCase() !== "benign");
+          const mal = data.filter(f => getBinaryVerdict(f) === "MALICIOUS");
           setMaliciousFlows(mal.slice(0, 500));
           setTotalFlows(data.length);
           setMaliciousCount(mal.length);
@@ -67,7 +72,7 @@ export default function SecurityDashboard() {
           setTotalFlows(prev => prev + 1);
           setAvgRisk(prev => prev * 0.95 + payload.risk_score * 0.05);
 
-          const isMalicious = payload.prediction?.toLowerCase() !== "benign";
+          const isMalicious = getBinaryVerdict(payload) === "MALICIOUS";
           
           if (isMalicious) {
              setMaliciousCount(prev => prev + 1);
@@ -186,6 +191,10 @@ export default function SecurityDashboard() {
                      <tr><td colSpan={5} className="text-center py-8 text-[var(--text-muted)]">No flows inspected yet.</td></tr>
                   )}
                   {flows.map((f, i) => (
+                    (() => {
+                      const verdict = getBinaryVerdict(f);
+                      const isMalicious = verdict === "MALICIOUS";
+                      return (
                     <tr key={f.session_id + i} className="border-b border-[var(--border-subtle)]/50 hover:bg-[var(--surface-hover)]">
                        <td className="py-2.5 px-3">
                          <div className="text-[var(--text-primary)]">{f.src_ip}<span className="text-[var(--text-muted)]">:{f.src_port || '*'}</span></div>
@@ -199,17 +208,19 @@ export default function SecurityDashboard() {
                        <td className="py-2.5 px-4">
                           <div className="flex items-center justify-center gap-2">
                               <div className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                f.prediction?.toLowerCase() !== 'benign' ? 'bg-[var(--danger)]/15 text-[var(--danger)] border border-[var(--danger)]/30' : 'bg-[var(--success)]/15 text-[var(--success)] border border-[var(--success)]/30'
+                              isMalicious ? 'bg-[var(--danger)]/15 text-[var(--danger)] border border-[var(--danger)]/30' : 'bg-[var(--success)]/15 text-[var(--success)] border border-[var(--success)]/30'
                               }`}>
-                                {f.prediction?.toLowerCase() !== 'benign' ? 'MALICIOUS' : 'BENIGN'}
+                              {verdict}
                              </div>
                              <div className="text-[9px] text-[var(--text-secondary)]">{(f.risk_score * 100).toFixed(0)}%</div>
                              <div className="w-10 h-1.5 bg-[var(--surface-2)] rounded-full overflow-hidden">
-                                <div className={`h-full ${f.prediction?.toLowerCase() !== 'benign' ? 'bg-[var(--danger)]' : 'bg-[var(--success)]'}`} style={{ width: `${f.risk_score * 100}%` }}/>
+                              <div className={`h-full ${isMalicious ? 'bg-[var(--danger)]' : 'bg-[var(--success)]'}`} style={{ width: `${f.risk_score * 100}%` }}/>
                              </div>
                           </div>
                        </td>
                     </tr>
+                       );
+                      })()
                   ))}
                </tbody>
             </table>
@@ -250,10 +261,13 @@ export default function SecurityDashboard() {
              <div className="flex-1 overflow-auto p-2 space-y-2">
                {maliciousFlows.length === 0 && (
                    <div className="text-center p-4 text-[var(--text-muted)] text-xs mt-4">
-                   No malicious predictions received yet. Waiting for attacks...
+                   No malicious flows received yet.
                    </div>
                 )}
                 {maliciousFlows.map((f, i) => (
+                  (() => {
+                    const verdict = getBinaryVerdict(f);
+                    return (
                    <div key={i} className="bg-[var(--surface-2)] border border-[var(--danger)]/20 p-2.5 rounded-lg flex flex-col gap-1 shadow-sm">
                       <div className="flex justify-between items-start">
                      <span className={`text-[10px] font-mono-data font-bold text-[var(--danger)]`}>
@@ -267,23 +281,16 @@ export default function SecurityDashboard() {
                       <div className="flex gap-2 mt-1">
                          <span className="pill text-[8px] bg-transparent border border-[var(--border-subtle)] text-[var(--text-secondary)]">{f.protocol} / {f.bytes}B</span>
                          <span className={`pill text-[8px] bg-[var(--danger)]/10 border border-[var(--danger)]/30 text-[var(--danger)]`}>
-                           {f.prediction?.toLowerCase() !== 'benign' ? 'MALICIOUS' : 'BENIGN'}
+                           {verdict}
                          </span>
-                         {f.correlation_alerts?.slice(0, 2).map((alert: any, index: number) => (
-                           <span key={index} className="pill text-[8px] bg-[var(--warning)]/10 border border-[var(--warning)]/30 text-[var(--warning)]">
-                             {alert.type}
-                           </span>
-                         ))}
                       </div>
                       
-                      {/* Explainability Section */}
-                      <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]/50">
-                        <div className="flex items-start gap-1.5 text-[10px] text-[var(--text-secondary)]">
-                          <svg className="flex-shrink-0 mt-0.5 text-[var(--warning)]" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                          <span className="leading-tight">{f.explanation || "Statistical deviation in traffic patterns."}</span>
-                        </div>
+                      <div className="mt-2 pt-2 border-t border-[var(--border-subtle)]/50 text-[10px] text-[var(--text-secondary)]">
+                        Binary verdict: {verdict}
                       </div>
                    </div>
+                    );
+                  })()
                  ))}
               </div>
           </div>
